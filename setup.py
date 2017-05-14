@@ -1,6 +1,27 @@
 #!/usr/bin/env python
 
+###############################################################################
+#                                                                             #
+#   Copyright 2017 - Ben Frankel                                              #
+#                                                                             #
+#   Licensed under the Apache License, Version 2.0 (the "License");           #
+#   you may not use this file except in compliance with the License.          #
+#   You may obtain a copy of the License at                                   #
+#                                                                             #
+#       http://www.apache.org/licenses/LICENSE-2.0                            #
+#                                                                             #
+#   Unless required by applicable law or agreed to in writing, software       #
+#   distributed under the License is distributed on an "AS IS" BASIS,         #
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  #
+#   See the License for the specific language governing permissions and       #
+#   limitations under the License.                                            #
+#                                                                             #
+###############################################################################
+
 from setuptools import setup, find_packages
+
+
+version = '0.1.1'
 
 
 with open('README.rst') as f:
@@ -9,17 +30,29 @@ with open('README.rst') as f:
 
 setup(
         name='hgf',
-        version='0.1.0',
+        version=version,
 
-        # Meta info for PyPI
-        description='Pygame-based framework for building hierarchical GUIs.',
+        description='A framework for building hierarchical GUIs',
         long_description=long_description,
         author='Ben Frankel',
         author_email='ben.frankel7@gmail.com',
-        url='https://www.github.com/',
-        keywords='pygame hierarchical gui framework',
-        # TODO: license, change url (put docs on github.io)
+        license='Apache 2.0',
+        url='https://www.github.com/BenFrankel/hgf',
+        download_url='https://www.github.com/BenFrankel/hgf/tarball/' + version,
+
+        keywords='hgf hierarchical gui framework',
+        classifiers=[
+            'Development Status :: 2 - Pre-Alpha',
+            'Intended Audience :: Developers',
+            'License :: OSI Approved :: Apache Software License',
+            'Natural Language :: English',
+            'Operating System :: OS Independent',
+            'Programming Language :: Python :: 3 :: Only',
+            'Topic :: Software Development :: Libraries :: Application Frameworks',
+            'Topic :: Software Development :: Libraries :: pygame',
+        ],
 
         packages=find_packages(),
-        requires=['pygame (>=1.9.2, <2.0)'],
+        requires=['pygame (>=1.9.1)'],
+        provides=['hgf']
 )
