@@ -22,7 +22,7 @@
 from . import base
 
 
-class Switch(base.Entity):
+class Switch(base.StructuralEntity):
     def __init__(self, width, height, opacity=0, typable=True, **kwargs):
         super().__init__(width, height, opacity=opacity, typable=typable, **kwargs)
         self.location = None
@@ -37,6 +37,9 @@ class Switch(base.Entity):
 
 
 class Sequence(Switch):
+    NEXT = 'next'
+    PREV = 'prev'
+
     def __init__(self, width, height, **kwargs):
         super().__init__(width, height, **kwargs)
         self.loc_list = []
@@ -55,9 +58,9 @@ class Sequence(Switch):
         self.enter_node(self.loc_list[index])
 
     def handle_message(self, sender, message):
-        if message == 'next' and self.loc_index is not None and not self.at_tail:
+        if message == Sequence.NEXT and self.loc_index is not None and not self.at_tail:
             self.enter_index(self.loc_index + 1)
-        elif message == 'prev' and self.loc_index is not None and not self.at_head:
+        elif message == Sequence.PREV and self.loc_index is not None and not self.at_head:
             self.enter_index(self.loc_index - 1)
         else:
             super().handle_message(sender, message)
@@ -83,7 +86,7 @@ class Hub(Switch):
 
     def register_node(self, name, node):
         if name in self.loc_nodes:
-            raise KeyError('A node with the name ' + name + ' is already registered.')
+            raise KeyError('A node with the name {} is already registered.'.format(name))
         self.loc_nodes[name] = node
         node.hide()
         self.register(node)

@@ -53,6 +53,8 @@ setup(
         ],
 
         packages=find_packages(),
-        requires=['pygame (>=1.9.1)'],
+        install_requires=[
+            'pygame (>=1.9.1)'
+        ],
         provides=['hgf']
 )

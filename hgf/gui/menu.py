@@ -34,7 +34,7 @@ class WidgetState(Enum):
     PULL = 4
 
 
-class Widget(base.Entity):
+class Widget(base.StructuralEntity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, hoverable=True, clickable=True, typable=False, **kwargs)
         self.name = 'widget'
@@ -135,7 +135,7 @@ class Button(Widget):
         super().update()
 
 
-class Menu(base.Entity):
+class Menu(base.StructuralEntity):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = 'menu'

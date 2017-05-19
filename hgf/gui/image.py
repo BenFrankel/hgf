@@ -24,7 +24,7 @@
 from . import base
 
 
-class Image(base.Entity):
+class Image(base.StructuralEntity):
     def __init__(self, filename=None):
         super().__init__(0, 0, hoverable=False, clickable=False)
         self._image = None

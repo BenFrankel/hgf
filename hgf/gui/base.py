@@ -226,7 +226,7 @@ class Rect:
     __repr__ = __str__
 
 
-class Entity(Rect):
+class StructuralEntity(Rect):
     def __init__(self, w, h, x=0, y=0, visible=True, hoverable=True, clickable=True, typable=False, opacity=1):
         super().__init__(x, y, w, h)
 

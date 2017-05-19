@@ -26,7 +26,7 @@ from .switch import Switch, Sequence, Hub
 from .image import Image
 from .text import Text
 from .window import Window
-from .base import Entity
+from .base import StructuralEntity
 
 
 __all__ = ['base', 'image', 'menu', 'switch', 'text', 'window']

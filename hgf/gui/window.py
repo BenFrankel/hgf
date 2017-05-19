@@ -24,7 +24,7 @@ import pygame
 from . import base
 
 
-class Window(base.Entity):
+class Window(base.StructuralEntity):
     def __init__(self, *args, **kwargs):
         self.surf = pygame.display.set_mode(*args)
         super().__init__(*self.surf.get_size(), typable=True, **kwargs)

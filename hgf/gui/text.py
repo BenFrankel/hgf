@@ -22,7 +22,7 @@
 from . import base
 
 
-class Text(base.Entity):
+class Text(base.StructuralEntity):
     def __init__(self, text='', font=None, fontsize=1, fgcolor=None):
         super().__init__(0, 0, hoverable=False, clickable=False)
         self._text = text
