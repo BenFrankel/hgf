@@ -1,0 +1,284 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Examples - hgf Documentation</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Official documentation for hgf (Hierarchical GUI Framework).">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li class="affix"><a href="./introduction.html">Introduction</a></li><li><a href="./overview.html"><strong>1.</strong> Overview</a></li><li><ul class="section"><li><a href="./structure.html"><strong>1.1.</strong> Structure</a></li><li><a href="./behavior.html"><strong>1.2.</strong> Behavior</a></li><li><a href="./configuration.html"><strong>1.3.</strong> Configuration</a></li><li><a href="./util.html"><strong>1.4.</strong> Other Utilities</a></li></ul></li><li><a href="./examples.html"><strong>2.</strong> Examples</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title">hgf Documentation</h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="print.html#introduction" id="introduction"><h1>Introduction</h1></a>
+<p><strong>hgf</strong> is a hierarchical GUI framework for Python, built on top of Pygame. It is designed to ease the creation of graphical applications that,</p>
+<ul>
+<li><strong>Support external configuration</strong> - controls, options, style</li>
+<li><strong>Separate major concerns</strong> - behavior, layout, appearance</li>
+<li><strong>Manage structural complexity</strong> - by combining basic components</li>
+</ul>
+<p>This book documents hgf version 0.1.1, pre-alpha. Anything could change, but any change will be made in accordance with the design principles above.</p>
+<a class="header" href="print.html#using-hgf" id="using-hgf"><h2>Using hgf</h2></a>
+<a class="header" href="print.html#dependencies" id="dependencies"><h3>Dependencies</h3></a>
+<ul>
+<li>Python 3.x</li>
+<li>PyGame 1.9.2+ (should be handled by pip)</li>
+</ul>
+<a class="header" href="print.html#installation" id="installation"><h3>Installation</h3></a>
+<p>hgf is available on <a href="https://pypi.python.org/pypi">PyPI</a>, so you can install the latest version using <a href="https://pip.pypa.io/en/stable/">pip</a>:</p>
+<p><code>pip install hgf</code></p>
+<a class="header" href="print.html#license" id="license"><h3>License</h3></a>
+<p>hgf is licensed under the <a href="https://github.com/BenFrankel/hgf/blob/master/LICENSE">Apache 2.0</a> license, so you are free to use, distribute and modify it.</p>
+<a class="header" href="print.html#overview" id="overview"><h1>Overview</h1></a>
+<p>This section serves as an overview of the functionality that hgf provides. If you're not sure whether hgf fits your particular use case, this section should help you decide. If you just want to know how to use hgf, you can read through <a href="./examples.html">Examples</a> (WIP), but it is recommended to read this section as well.</p>
+<a class="header" href="print.html#structure" id="structure"><h1>Structure</h1></a>
+<p>A GUI built with hgf takes the form of a tree, where each node is a <code>StructuralComponent</code> that is responsible for the children directly underneath it and for reporting information to its parent. For example, a typical application may be structured as below.</p>
+<p align="center">
+  <img src="structure.png"/>
+</p>
+<p>The application whose structure is depicted above has a root node representing the main window, with one child representing a <code>Hub</code> (a logical component for handling navigation by menu) with three children: a main menu, a help page, and an area where the meat of the application resides. Each child component may have further subcomponents, and so on, until an atomic component—or leaf node—is reached.</p>
+<p>We can classify components into 3 major categories: <em>logical</em>, <em>atomic</em>, and <em>composite</em>.</p>
+<a class="header" href="print.html#logical-components" id="logical-components"><h2>Logical components</h2></a>
+<p>The module <code>hgf.gui</code> provides some common <code>StructuralComponent</code>s that can be composed to build applications like the above. Some of the components are <em>logical</em>, like <code>Hub</code>. That is, all they do is oversee a collection of children and coordinate between them.</p>
+<a class="header" href="print.html#purely-structural-components" id="purely-structural-components"><h3>Purely Structural components</h3></a>
+<p>There is a special type of logical component called <em>purely structural</em>. A purely structural component, like <code>Hub</code>, connects a set of alternatives and provides a way to switch between them.</p>
+<p>In the diagram above, the purely structural components are colored black. 'Hub' is a <code>Hub</code>, and 'Information' is a <code>Sequence</code>. The purely structural components from <code>hgf.gui.switch</code> are:</p>
+<ul>
+<li><code>Hub</code>: oversees a central node that can switch to/from every other node</li>
+<li><code>Sequence</code>: oversees a sequence of nodes that can switch to/from their next &amp; previous</li>
+</ul>
+<p>And you can create your own purely structural components by subclassing the base class <code>Switch</code>!</p>
+<a class="header" href="print.html#atomic-components" id="atomic-components"><h2>Atomic components</h2></a>
+<p>A handful of common atomic components (or, leaf nodes) are also provided by <code>hgf.gui</code>. They don't do anything interesting, and they have no children. The atomic components from <code>hgf.gui.text</code>, <code>hgf.gui.image</code> and <code>hgf.gui.menu</code> are, respectively:</p>
+<ul>
+<li><code>Text</code>: supports foreground color, font &amp; fontsize to display text</li>
+<li><code>Image</code>: an image</li>
+<li><code>Widget</code>: base class for mouse-interactive components like buttons</li>
+</ul>
+<p>To create your own atomic components, you can subclass the base class <code>StructuralComponent</code>.</p>
+<p>You can subclass <code>Widget</code> to create any component that responds to the mouse, like a scrollbar, a slider, a button, etc.</p>
+<a class="header" href="print.html#composite-components" id="composite-components"><h2>Composite components</h2></a>
+<p>Some components maintain children like purely structural components, but also act as concrete entities with their own functionalities like atomic components. This could be a dialog box with text and a couple of buttons, or a chess board overseeing its chess pieces. The composite components provided by <code>hgf.gui.menu</code> are as follows:</p>
+<ul>
+<li><code>Button</code>: sends a message to its parent when clicked</li>
+<li><code>Menu</code>: aggregates buttons; useful as the center node of a <code>Hub</code></li>
+</ul>
+<a class="header" href="print.html#root-component" id="root-component"><h2>Root component</h2></a>
+<p>Finally, at the top of the tree, colored in green in the diagram, is the root component. This is usually <code>Window</code> from <code>hgf.gui.window</code>.</p>
+<a class="header" href="print.html#behavior" id="behavior"><h1>Behavior</h1></a>
+<p>hgf uses the <a href="https://en.wikipedia.org/wiki/Observer_pattern">observer pattern</a> to separate interface from behavior. <code>hgf.model</code> provides the base class <code>Subject</code> to be inherited by any class modeling the behavior of a <code>StructuralComponent</code>. Every <code>Subject</code> can set a list of features (<code>self.state_properties</code>) that influence the external appearance of the <code>StructuralComponent</code>, so that it can be redrawn only when necessary.</p>
+<p>For example, consider a <code>StructuralComponent</code> representing a card in a card game. The card can be face up or face down, and the player can select it. We can use a <code>Subject</code> to model this behavior:</p>
+<pre><code class="language-python">class Card(model.Subject):
+    def __init__(self):
+        super().__init__()
+        
+        self.selected = False
+        self.face_up = True
+        
+        self.state_properties = 'selected', 'face_up'
+    
+    ...
+</code></pre>
+<p>Whenever the value of <code>selected</code> or <code>face_up</code> changes, the card will automatically be redrawn on screen. For any feature of the <code>Subject</code> that influences external appearance but doesn't have a corresponding attribute, you can define a property instead.</p>
+<a class="header" href="print.html#configuration" id="configuration"><h1>Configuration</h1></a>
+<p>External configuration and resources are handled by creating a context that automatically loads the default settings from a fixed directory. The context can also load other settings during runtime, to allow for things like customizable user configuration.</p>
+<p>The context that handles these resources is called an <code>App</code>, which is spawned by an <code>AppManager</code>. The <code>AppManager</code> handles fixed/shared resources like images and sounds, while the <code>App</code> handles dynamic resources like style, options, and controls.</p>
+<p>In general, data to be read by hgf should be written/stored in <a href="https://en.wikipedia.org/wiki/JSON">JSON</a>.</p>
+<a class="header" href="print.html#appdata" id="appdata"><h2>Appdata</h2></a>
+<p>In order for hgf to know where to find an application's resources, there needs to be (in the same directory as your <code>main.py</code>) a folder named <code>appdata</code> with a subfolder named <code>appname</code>, where 'appname' is replaced by the name of your app. Within <code>appname</code> there should be a file <code>dir.json</code> that outlines the directories that hgf needs to look inside of. In particular:</p>
+<ul>
+<li><code>"info"</code> directory, containing:</li>
+<ul>
+<li><code>fonts.json</code></li>
+<li><code>images.json</code></li>
+<li><code>music.json</code></li>
+<li><code>sounds.json</code></li>
+</ul>
+<li><code>"config"</code> directory, containing:</li>
+<ul>
+<li><code>style.json</code></li>
+<li><code>options.json</code></li>
+<li><code>controls.json</code></li>
+<li><code>resources.json</code></li>
+</ul>
+<li><code>"fonts"</code> directory, containing font files</li>
+<li><code>"images"</code> directory, containing image files</li>
+<li><code>"sounds"</code> directory, containing sound files</li>
+<li><code>"music"</code> directory, containing music files</li>
+</ul>
+<p>The purpose and format of the <code>.json</code> files listed above will be explained in the following sections.</p>
+<a class="header" href="print.html#style" id="style"><h3>Style</h3></a>
+<p><code>style.json</code> is structured as a collection of properties assigned to object types + their context. For example, the object type may be &quot;button&quot; and the property may be &quot;font&quot;. The particular font could depend on the context that the button is in; if it's a main menu button, a dialog box button, etc.</p>
+<p>Note that <em>object type</em> refers to a <code>StructuralComponent</code>'s <code>self.name</code> attribute, and <em>context</em> refers to either the <code>self.context</code> attribute or the parent's <em>context</em> (note that this is a recursive definition).</p>
+<p>In order to reference a particular loaded resource, use <code>&quot;$&lt;resource-type&gt;=&lt;resource-name&gt;&quot;</code>. The value of <code>resource-name</code> is determined by configuration as detailed in the <a href="print.html#Resources">Resources</a> section.</p>
+<p>Furthermore, it is possible to reference Python objects by using <em>style packs</em>. A style pack is a nested Python dictionary having the same structure (context, object type, properties) as <code>style.json</code>. The <code>AppManager</code> is provided with a dictionary of named style packs, and replaces <code>&quot;@&lt;style-pack-name&gt;&quot;</code> in <code>style.json</code> with the corresponding Python object.</p>
+<p>Here is a simple example of a style configuration:</p>
+<pre><code class="language-json">{
+  &quot;default&quot;: {
+    &quot;default&quot;: {
+      &quot;font&quot;: &quot;$font=default&quot;
+    },
+
+    &quot;window&quot;: {
+      &quot;bg-color&quot;: [0, 100, 160]
+    }
+  },
+
+  &quot;setgame&quot;: {
+    &quot;clock&quot;: {
+      &quot;font&quot;: &quot;$font=digital-clock&quot;
+    }
+  }
+}
+</code></pre>
+<p><code>&quot;default&quot;</code> is a special context / object type for when there is no special context, and can be overridden by properties in more specific context / object types.</p>
+<a class="header" href="print.html#options" id="options"><h3>Options</h3></a>
+<p><code>options.json</code> is structured the same way as <code>style.json</code>, but there is no way to reference loaded resources or Python objects. Otherwise the distinction is mostly semantic; options are meant to be settings not directly related to appearance, such as window size or an FPS limit.</p>
+<a class="header" href="print.html#controls" id="controls"><h3>Controls</h3></a>
+<p><code>controls.json</code> is a collection of key-bindings assigned to <em>messages</em> that are sent to and handled by the current <code>key_listener</code> in the hierarchy.</p>
+<p>Here is a simple example of a controls configuration:</p>
+<pre><code class="language-json">{
+  &quot;global&quot;: {
+    &quot;exit&quot;: [&quot;esc&quot;, &quot;shift-q&quot;]
+  },
+
+  &quot;setgame&quot;: {
+    &quot;toggle-pause&quot;: [&quot;p&quot;],
+    &quot;restart&quot;: [&quot;r&quot;]
+  }
+}
+</code></pre>
+<p><code>&quot;global&quot;</code> is a special context that is universal and that overrides all other bindings.</p>
+<a class="header" href="print.html#resources" id="resources"><h3>Resources</h3></a>
+<p>The <code>fonts.json</code>, <code>images.json</code>, <code>music.json</code> and <code>sounds.json</code> files tell hgf what resources to load and what they should be called. The resources are loaded from the respective directories as outlined in <code>dir.json</code>. Here is an example for <code>fonts.json</code>:</p>
+<pre><code class="language-json">{
+  &quot;ubuntu mono&quot;: &quot;UbuntuMono-R.ttf&quot;,
+  &quot;crysta&quot;: &quot;Crysta.ttf&quot;
+  ...
+}
+</code></pre>
+<p>Furthermore, resource aliases can be defined in <code>resources.json</code>. The first few files described create a layer of indirection so that resources can be loaded with a literal name that doesn't have to be changed if the filename changes, and <code>resources.json</code> creates a layer of indirection so that the same resource can fill different roles in the application.</p>
+<p>For example, consider the following <code>resources.json</code> file:</p>
+<pre><code class="language-json">{
+  &quot;fonts&quot;: {
+    &quot;default&quot;: &quot;ubuntu mono&quot;,
+    &quot;dialogue&quot;: &quot;ubuntu mono&quot;,
+    &quot;digital-clock&quot;: &quot;crysta&quot;
+  },
+
+  &quot;images&quot;: {
+    ...
+  },
+
+  &quot;sounds&quot;: {
+    ...
+  },
+
+  &quot;music&quot;: {
+    ...
+  }
+}
+</code></pre>
+<p><code>style.json</code> should reference resources through <code>resources.json</code>'s aliases.</p>
+<a class="header" href="print.html#other-utilities" id="other-utilities"><h1>Other utilities</h1></a>
+<p>hgf also provides various utilities that may be helpful but are not strictly necessary.</p>
+<a class="header" href="print.html#timer" id="timer"><h2>Timer</h2></a>
+<p>In <code>hgf.util.timer</code> there are two classes, <code>Time</code>, <code>Timer</code>, and <code>CountdownTimer</code>.</p>
+<p>The <code>Time</code> class represents a day, hour, month, second, millisecond tuple with attributes named <code>d</code>, <code>h</code>, <code>m</code>, <code>s</code>, <code>ms</code>, respectively. These attributes are properties, and changes to one of them will be distributed appropriately (including handling of non-integral values). <code>Time</code> objects may be added and subtracted.</p>
+<p><strong>Known issue</strong>: Negative time is not handled properly so it should be avoided when possible (though arithmetic with negative time will get the correct result).</p>
+<p>The <code>Timer</code> class uses <code>Time</code> internally. It acts as a stopwatch that counts up from 0, with methods <code>start</code>, <code>pause</code>, <code>unpause</code>, <code>reset</code>, and <code>restart</code>. Note that <code>start</code> takes an optional argument allowing <code>Timer</code> to start at any <code>Time</code>.</p>
+<p>The <code>CountdownTimer</code> class is a subclass of <code>Timer</code>. The only difference is that it counts <em>down</em> and then stops when it reaches 0.</p>
+<a class="header" href="print.html#examples" id="examples"><h1>Examples</h1></a>
+<p>(WIP)</p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+
+                
+
+            </div>
+
+            
+
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

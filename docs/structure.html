@@ -1,0 +1,154 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Structure - hgf Documentation</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Official documentation for hgf (Hierarchical GUI Framework).">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li class="affix"><a href="./introduction.html">Introduction</a></li><li><a href="./overview.html"><strong>1.</strong> Overview</a></li><li><ul class="section"><li><a href="./structure.html" class="active"><strong>1.1.</strong> Structure</a></li><li><a href="./behavior.html"><strong>1.2.</strong> Behavior</a></li><li><a href="./configuration.html"><strong>1.3.</strong> Configuration</a></li><li><a href="./util.html"><strong>1.4.</strong> Other Utilities</a></li></ul></li><li><a href="./examples.html"><strong>2.</strong> Examples</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title">hgf Documentation</h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="./structure.html#structure" id="structure"><h1>Structure</h1></a>
+<p>A GUI built with hgf takes the form of a tree, where each node is a <code>StructuralComponent</code> that is responsible for the children directly underneath it and for reporting information to its parent. For example, a typical application may be structured as below.</p>
+<p align="center">
+  <img src="structure.png"/>
+</p>
+<p>The application whose structure is depicted above has a root node representing the main window, with one child representing a <code>Hub</code> (a logical component for handling navigation by menu) with three children: a main menu, a help page, and an area where the meat of the application resides. Each child component may have further subcomponents, and so on, until an atomic component—or leaf node—is reached.</p>
+<p>We can classify components into 3 major categories: <em>logical</em>, <em>atomic</em>, and <em>composite</em>.</p>
+<a class="header" href="./structure.html#logical-components" id="logical-components"><h2>Logical components</h2></a>
+<p>The module <code>hgf.gui</code> provides some common <code>StructuralComponent</code>s that can be composed to build applications like the above. Some of the components are <em>logical</em>, like <code>Hub</code>. That is, all they do is oversee a collection of children and coordinate between them.</p>
+<a class="header" href="./structure.html#purely-structural-components" id="purely-structural-components"><h3>Purely Structural components</h3></a>
+<p>There is a special type of logical component called <em>purely structural</em>. A purely structural component, like <code>Hub</code>, connects a set of alternatives and provides a way to switch between them.</p>
+<p>In the diagram above, the purely structural components are colored black. 'Hub' is a <code>Hub</code>, and 'Information' is a <code>Sequence</code>. The purely structural components from <code>hgf.gui.switch</code> are:</p>
+<ul>
+<li><code>Hub</code>: oversees a central node that can switch to/from every other node</li>
+<li><code>Sequence</code>: oversees a sequence of nodes that can switch to/from their next &amp; previous</li>
+</ul>
+<p>And you can create your own purely structural components by subclassing the base class <code>Switch</code>!</p>
+<a class="header" href="./structure.html#atomic-components" id="atomic-components"><h2>Atomic components</h2></a>
+<p>A handful of common atomic components (or, leaf nodes) are also provided by <code>hgf.gui</code>. They don't do anything interesting, and they have no children. The atomic components from <code>hgf.gui.text</code>, <code>hgf.gui.image</code> and <code>hgf.gui.menu</code> are, respectively:</p>
+<ul>
+<li><code>Text</code>: supports foreground color, font &amp; fontsize to display text</li>
+<li><code>Image</code>: an image</li>
+<li><code>Widget</code>: base class for mouse-interactive components like buttons</li>
+</ul>
+<p>To create your own atomic components, you can subclass the base class <code>StructuralComponent</code>.</p>
+<p>You can subclass <code>Widget</code> to create any component that responds to the mouse, like a scrollbar, a slider, a button, etc.</p>
+<a class="header" href="./structure.html#composite-components" id="composite-components"><h2>Composite components</h2></a>
+<p>Some components maintain children like purely structural components, but also act as concrete entities with their own functionalities like atomic components. This could be a dialog box with text and a couple of buttons, or a chess board overseeing its chess pieces. The composite components provided by <code>hgf.gui.menu</code> are as follows:</p>
+<ul>
+<li><code>Button</code>: sends a message to its parent when clicked</li>
+<li><code>Menu</code>: aggregates buttons; useful as the center node of a <code>Hub</code></li>
+</ul>
+<a class="header" href="./structure.html#root-component" id="root-component"><h2>Root component</h2></a>
+<p>Finally, at the top of the tree, colored in green in the diagram, is the root component. This is usually <code>Window</code> from <code>hgf.gui.window</code>.</p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="./overview.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="./behavior.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="./overview.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="./behavior.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>

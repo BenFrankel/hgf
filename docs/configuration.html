@@ -1,0 +1,220 @@
+<!DOCTYPE HTML>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <title>Configuration - hgf Documentation</title>
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Official documentation for hgf (Hierarchical GUI Framework).">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <base href="">
+
+        <link rel="stylesheet" href="book.css">
+        <link href="https://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,600italic,700italic,800italic,400,300,600,700,800" rel="stylesheet" type="text/css">
+        <link href="https://fonts.googleapis.com/css?family=Source+Code+Pro:500" rel="stylesheet" type="text/css">
+
+        <link rel="shortcut icon" href="favicon.png">
+
+        <!-- Font Awesome -->
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+
+        <!-- MathJax -->
+        <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+
+        <!-- Fetch JQuery from CDN but have a local fallback -->
+        <script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+        <script>
+            if (typeof jQuery == 'undefined') {
+                document.write(unescape("%3Cscript src='jquery.js'%3E%3C/script%3E"));
+            }
+        </script>
+    </head>
+    <body class="light">
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme = localStorage.getItem('theme');
+            if (theme == null) { theme = 'light'; }
+            $('body').removeClass().addClass(theme);
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var sidebar = localStorage.getItem('sidebar');
+            if (sidebar === "hidden") { $("html").addClass("sidebar-hidden") }
+            else if (sidebar === "visible") { $("html").addClass("sidebar-visible") }
+        </script>
+
+        <div id="sidebar" class="sidebar">
+            <ul class="chapter"><li class="affix"><a href="./introduction.html">Introduction</a></li><li><a href="./overview.html"><strong>1.</strong> Overview</a></li><li><ul class="section"><li><a href="./structure.html"><strong>1.1.</strong> Structure</a></li><li><a href="./behavior.html"><strong>1.2.</strong> Behavior</a></li><li><a href="./configuration.html" class="active"><strong>1.3.</strong> Configuration</a></li><li><a href="./util.html"><strong>1.4.</strong> Other Utilities</a></li></ul></li><li><a href="./examples.html"><strong>2.</strong> Examples</a></li></ul>
+        </div>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar" class="menu-bar">
+                    <div class="left-buttons">
+                        <i id="sidebar-toggle" class="fa fa-bars"></i>
+                        <i id="theme-toggle" class="fa fa-paint-brush"></i>
+                    </div>
+
+                    <h1 class="menu-title">hgf Documentation</h1>
+
+                    <div class="right-buttons">
+                        <i id="print-button" class="fa fa-print" title="Print this book"></i>
+                    </div>
+                </div>
+
+                <div id="content" class="content">
+                    <a class="header" href="./configuration.html#configuration" id="configuration"><h1>Configuration</h1></a>
+<p>External configuration and resources are handled by creating a context that automatically loads the default settings from a fixed directory. The context can also load other settings during runtime, to allow for things like customizable user configuration.</p>
+<p>The context that handles these resources is called an <code>App</code>, which is spawned by an <code>AppManager</code>. The <code>AppManager</code> handles fixed/shared resources like images and sounds, while the <code>App</code> handles dynamic resources like style, options, and controls.</p>
+<p>In general, data to be read by hgf should be written/stored in <a href="https://en.wikipedia.org/wiki/JSON">JSON</a>.</p>
+<a class="header" href="./configuration.html#appdata" id="appdata"><h2>Appdata</h2></a>
+<p>In order for hgf to know where to find an application's resources, there needs to be (in the same directory as your <code>main.py</code>) a folder named <code>appdata</code> with a subfolder named <code>appname</code>, where 'appname' is replaced by the name of your app. Within <code>appname</code> there should be a file <code>dir.json</code> that outlines the directories that hgf needs to look inside of. In particular:</p>
+<ul>
+<li><code>"info"</code> directory, containing:</li>
+<ul>
+<li><code>fonts.json</code></li>
+<li><code>images.json</code></li>
+<li><code>music.json</code></li>
+<li><code>sounds.json</code></li>
+</ul>
+<li><code>"config"</code> directory, containing:</li>
+<ul>
+<li><code>style.json</code></li>
+<li><code>options.json</code></li>
+<li><code>controls.json</code></li>
+<li><code>resources.json</code></li>
+</ul>
+<li><code>"fonts"</code> directory, containing font files</li>
+<li><code>"images"</code> directory, containing image files</li>
+<li><code>"sounds"</code> directory, containing sound files</li>
+<li><code>"music"</code> directory, containing music files</li>
+</ul>
+<p>The purpose and format of the <code>.json</code> files listed above will be explained in the following sections.</p>
+<a class="header" href="./configuration.html#style" id="style"><h3>Style</h3></a>
+<p><code>style.json</code> is structured as a collection of properties assigned to object types + their context. For example, the object type may be &quot;button&quot; and the property may be &quot;font&quot;. The particular font could depend on the context that the button is in; if it's a main menu button, a dialog box button, etc.</p>
+<p>Note that <em>object type</em> refers to a <code>StructuralComponent</code>'s <code>self.name</code> attribute, and <em>context</em> refers to either the <code>self.context</code> attribute or the parent's <em>context</em> (note that this is a recursive definition).</p>
+<p>In order to reference a particular loaded resource, use <code>&quot;$&lt;resource-type&gt;=&lt;resource-name&gt;&quot;</code>. The value of <code>resource-name</code> is determined by configuration as detailed in the <a href="./configuration.html#Resources">Resources</a> section.</p>
+<p>Furthermore, it is possible to reference Python objects by using <em>style packs</em>. A style pack is a nested Python dictionary having the same structure (context, object type, properties) as <code>style.json</code>. The <code>AppManager</code> is provided with a dictionary of named style packs, and replaces <code>&quot;@&lt;style-pack-name&gt;&quot;</code> in <code>style.json</code> with the corresponding Python object.</p>
+<p>Here is a simple example of a style configuration:</p>
+<pre><code class="language-json">{
+  &quot;default&quot;: {
+    &quot;default&quot;: {
+      &quot;font&quot;: &quot;$font=default&quot;
+    },
+
+    &quot;window&quot;: {
+      &quot;bg-color&quot;: [0, 100, 160]
+    }
+  },
+
+  &quot;setgame&quot;: {
+    &quot;clock&quot;: {
+      &quot;font&quot;: &quot;$font=digital-clock&quot;
+    }
+  }
+}
+</code></pre>
+<p><code>&quot;default&quot;</code> is a special context / object type for when there is no special context, and can be overridden by properties in more specific context / object types.</p>
+<a class="header" href="./configuration.html#options" id="options"><h3>Options</h3></a>
+<p><code>options.json</code> is structured the same way as <code>style.json</code>, but there is no way to reference loaded resources or Python objects. Otherwise the distinction is mostly semantic; options are meant to be settings not directly related to appearance, such as window size or an FPS limit.</p>
+<a class="header" href="./configuration.html#controls" id="controls"><h3>Controls</h3></a>
+<p><code>controls.json</code> is a collection of key-bindings assigned to <em>messages</em> that are sent to and handled by the current <code>key_listener</code> in the hierarchy.</p>
+<p>Here is a simple example of a controls configuration:</p>
+<pre><code class="language-json">{
+  &quot;global&quot;: {
+    &quot;exit&quot;: [&quot;esc&quot;, &quot;shift-q&quot;]
+  },
+
+  &quot;setgame&quot;: {
+    &quot;toggle-pause&quot;: [&quot;p&quot;],
+    &quot;restart&quot;: [&quot;r&quot;]
+  }
+}
+</code></pre>
+<p><code>&quot;global&quot;</code> is a special context that is universal and that overrides all other bindings.</p>
+<a class="header" href="./configuration.html#resources" id="resources"><h3>Resources</h3></a>
+<p>The <code>fonts.json</code>, <code>images.json</code>, <code>music.json</code> and <code>sounds.json</code> files tell hgf what resources to load and what they should be called. The resources are loaded from the respective directories as outlined in <code>dir.json</code>. Here is an example for <code>fonts.json</code>:</p>
+<pre><code class="language-json">{
+  &quot;ubuntu mono&quot;: &quot;UbuntuMono-R.ttf&quot;,
+  &quot;crysta&quot;: &quot;Crysta.ttf&quot;
+  ...
+}
+</code></pre>
+<p>Furthermore, resource aliases can be defined in <code>resources.json</code>. The first few files described create a layer of indirection so that resources can be loaded with a literal name that doesn't have to be changed if the filename changes, and <code>resources.json</code> creates a layer of indirection so that the same resource can fill different roles in the application.</p>
+<p>For example, consider the following <code>resources.json</code> file:</p>
+<pre><code class="language-json">{
+  &quot;fonts&quot;: {
+    &quot;default&quot;: &quot;ubuntu mono&quot;,
+    &quot;dialogue&quot;: &quot;ubuntu mono&quot;,
+    &quot;digital-clock&quot;: &quot;crysta&quot;
+  },
+
+  &quot;images&quot;: {
+    ...
+  },
+
+  &quot;sounds&quot;: {
+    ...
+  },
+
+  &quot;music&quot;: {
+    ...
+  }
+}
+</code></pre>
+<p><code>style.json</code> should reference resources through <code>resources.json</code>'s aliases.</p>
+
+                </div>
+
+                <!-- Mobile navigation buttons -->
+                
+                    <a href="./behavior.html" class="mobile-nav-chapters previous">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                
+
+                
+                    <a href="./util.html" class="mobile-nav-chapters next">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+                
+
+            </div>
+
+            
+                <a href="./behavior.html" class="nav-chapters previous" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-left"></i>
+                </a>
+            
+
+            
+                <a href="./util.html" class="nav-chapters next" title="You can navigate through the chapters using the arrow keys">
+                    <i class="fa fa-angle-right"></i>
+                </a>
+            
+
+        </div>
+
+
+        <!-- Local fallback for Font Awesome -->
+        <script>
+            if ($(".fa").css("font-family") !== "FontAwesome") {
+                $('<link rel="stylesheet" type="text/css" href="_FontAwesome/css/font-awesome.css">').prependTo('head');
+            }
+        </script>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        
+
+        
+
+
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+    </body>
+</html>
