@@ -6,7 +6,7 @@
 - **Separate major concerns** - behavior, layout, appearance
 - **Manage structural complexity** - by combining basic components
 
-This book documents hgf version 0.1.1, pre-alpha. Anything could change, but any change will be made in accordance with the design principles above.
+hgf is currently version 0.1.1, pre-alpha. Anything could change, but any change will be made in accordance with the design principles above.
 
 
 ## Using hgf
