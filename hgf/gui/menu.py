@@ -23,7 +23,8 @@ from enum import Enum
 
 import pygame
 
-from hgf.gui import base, text
+from .base import StructuralComponent, Rect
+from .text import Text
 
 
 class WidgetState(Enum):
@@ -34,9 +35,9 @@ class WidgetState(Enum):
     PULL = 4
 
 
-class Widget(base.StructuralEntity):
+class Widget(StructuralComponent):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, hoverable=True, clickable=True, typable=False, **kwargs)
+        super().__init__(*args, hover=True, click=True, **kwargs)
         self.name = 'widget'
 
         self._widget_state = WidgetState.IDLE
@@ -60,7 +61,7 @@ class Widget(base.StructuralEntity):
         super().pause()
 
     def mouse_enter(self, start, end, buttons):
-        if self._visible:
+        if self._is_visible:
             if self.widget_state == WidgetState.IDLE:
                 if buttons[0]:
                     self.widget_state = WidgetState.PUSH
@@ -71,7 +72,7 @@ class Widget(base.StructuralEntity):
         super().mouse_enter(start, end, buttons)
 
     def mouse_exit(self, start, end, buttons):
-        if self._visible:
+        if self._is_visible:
             if self.widget_state == WidgetState.HOVER or self.widget_state == WidgetState.PUSH:
                 self.widget_state = WidgetState.IDLE
             elif self.widget_state == WidgetState.PRESS:
@@ -79,14 +80,14 @@ class Widget(base.StructuralEntity):
         super().mouse_exit(start, end, buttons)
 
     def mouse_down(self, pos, button):
-        if button == 1 and self._visible:
+        if button == 1 and self._is_visible:
             if self.widget_state != WidgetState.HOVER:
                 self.widget_state = WidgetState.HOVER
             self.widget_state = WidgetState.PRESS
         super().mouse_down(pos, button)
 
     def mouse_up(self, pos, button):
-        if button == 1 and self._visible:
+        if button == 1 and self._is_visible:
             if self.widget_state == WidgetState.PRESS or self.widget_state == WidgetState.PUSH:
                 self.widget_state = WidgetState.HOVER
             elif self.widget_state == WidgetState.PULL:
@@ -94,7 +95,7 @@ class Widget(base.StructuralEntity):
         super().mouse_up(pos, button)
 
     def track(self):
-        if self._visible and self.widget_state == WidgetState.PULL and not pygame.mouse.get_pressed()[0]:
+        if self._is_visible and self.widget_state == WidgetState.PULL and not pygame.mouse.get_pressed()[0]:
             self.widget_state = WidgetState.IDLE
 
 
@@ -106,7 +107,8 @@ class Button(Widget):
         self._label_name = label_name
         self.message = message
 
-        self.label = text.Text(label_name, fontsize=max(self.h // 3, 14), fgcolor=(255, 255, 255))
+        self.label = Text(label_name, fontsize=max(self.h // 3, 14), fgcolor=(255, 255, 255))
+        self.label.center = self.rel_rect().center
         self.register(self.label)
 
     @property
@@ -125,7 +127,7 @@ class Button(Widget):
         self.reload()
 
     def reload(self):
-        self.background = self.style_get('button')(self.size, self.widget_state)
+        self.background = self.style_get('background')(self.size, self.widget_state)
 
     def update(self):
         self.label.center = self.rel_rect().center
@@ -135,25 +137,29 @@ class Button(Widget):
         super().update()
 
 
-class Menu(base.StructuralEntity):
+class Menu(StructuralComponent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
         self.name = 'menu'
 
         self.buttons = []
 
+        self.button_gap = self.h // 50
+        self.button_w = self.w // 5
+        self.button_h = self.h // 10
+
     def add_button(self, name, message):
-        # TODO: Something smarter than this...
-        button_w = self.w // 5
-        button_h = self.h // 10
-        button = Button(name, message, button_w, button_h)
+        button = Button(name, message, self.button_w, self.button_h)
         self.buttons.append(button)
         self.register(button)
 
     def update(self):
-        # TODO: Smarter than this too..
-        button_y = 10
+        buttons_rect = Rect(w=self.button_w,
+                            h=len(self.buttons) * (self.button_h + self.button_gap) - self.button_gap)
+        button_x = self.midx - buttons_rect.midx
+        button_y = self.midy - buttons_rect.midy
         for button in self.buttons:
-            button.x = 10
-            button.y = button_y + 200
-            button_y += button.h + 10
+            button.x = button_x
+            button.y = button_y
+            button_y += button.h + self.button_gap

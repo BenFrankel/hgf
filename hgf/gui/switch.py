@@ -22,9 +22,9 @@
 from . import base
 
 
-class Switch(base.StructuralEntity):
-    def __init__(self, width, height, opacity=0, typable=True, **kwargs):
-        super().__init__(width, height, opacity=opacity, typable=typable, **kwargs)
+class Switch(base.StructuralComponent):
+    def __init__(self, width, height, opacity=0, **kwargs):
+        super().__init__(width, height, opacity=opacity, **kwargs)
         self.location = None
 
     def enter_node(self, child):
@@ -32,13 +32,14 @@ class Switch(base.StructuralEntity):
             if self.location is not None:
                 self.location.hide()
             self.location = child
-            self.key_listener = child if child._typable else None
+            if child.can_focus:
+                child.take_focus()
             child.show()
 
 
 class Sequence(Switch):
-    NEXT = 'next'
-    PREV = 'prev'
+    MSG_NEXT = 'next'
+    MSG_PREV = 'prev'
 
     def __init__(self, width, height, **kwargs):
         super().__init__(width, height, **kwargs)
@@ -58,9 +59,9 @@ class Sequence(Switch):
         self.enter_node(self.loc_list[index])
 
     def handle_message(self, sender, message):
-        if message == Sequence.NEXT and self.loc_index is not None and not self.at_tail:
+        if message == Sequence.MSG_NEXT and self.loc_index is not None and not self.at_tail:
             self.enter_index(self.loc_index + 1)
-        elif message == Sequence.PREV and self.loc_index is not None and not self.at_head:
+        elif message == Sequence.MSG_PREV and self.loc_index is not None and not self.at_head:
             self.enter_index(self.loc_index - 1)
         else:
             super().handle_message(sender, message)
@@ -69,6 +70,8 @@ class Sequence(Switch):
         self.loc_list.insert(index, child)
         if self.loc_index is None:
             self.enter_index(index)
+        else:
+            child.hide()
         self.register(child)
 
     def register_head(self, head):
@@ -95,6 +98,8 @@ class Hub(Switch):
         self.loc_center = center
         if self.location is None:
             self.enter_node(center)
+        else:
+            center.hide()
         self.register(center)
 
     def handle_message(self, sender, message):

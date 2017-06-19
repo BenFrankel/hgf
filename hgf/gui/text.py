@@ -22,9 +22,9 @@
 from . import base
 
 
-class Text(base.StructuralEntity):
+class Text(base.StructuralComponent):
     def __init__(self, text='', font=None, fontsize=1, fgcolor=None):
-        super().__init__(0, 0, hoverable=False, clickable=False)
+        super().__init__(0, 0, hover=False, click=False)
         self._text = text
         self._font = font
         self._fontsize = fontsize
@@ -62,6 +62,9 @@ class Text(base.StructuralEntity):
         if self._fontsize != other:
             self._fontsize = other
             self.reload()
+
+    def get_metrics(self):
+        return self.font.get_metrics(self.text, self.fontsize)
 
     def reload(self):
         if self._font is None:

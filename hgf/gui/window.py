@@ -24,12 +24,18 @@ import pygame
 from . import base
 
 
-class Window(base.StructuralEntity):
-    def __init__(self, *args, **kwargs):
-        self.surf = pygame.display.set_mode(*args)
-        super().__init__(*self.surf.get_size(), typable=True, **kwargs)
+class Window(base.StructuralComponent):
+    def __init__(self, w, h, *args, **kwargs):
+        super().__init__(w, h, **kwargs)
         self.name = 'window'
+
+        self.args = args
+        self.surf = None
+
         self.bg_color = None
+
+    def open(self):
+        self.surf = pygame.display.set_mode(self.size, *self.args)
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:

@@ -24,9 +24,9 @@
 from . import base
 
 
-class Image(base.StructuralEntity):
+class Image(base.StructuralComponent):
     def __init__(self, filename=None):
-        super().__init__(0, 0, hoverable=False, clickable=False)
+        super().__init__(0, 0, hover=False, click=False)
         self._image = None
         if filename is not None:
             self.load(filename)

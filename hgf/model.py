@@ -66,8 +66,10 @@ class Subject:
             self._old_state = new_state
             self._notify_all(StateChange(before, new_state))
 
-    def tick(self):
-        self._update()
+    def _prepare(self):
+        for child in self._children:
+            child._prepare()
+        self.update()
 
 
 class State:

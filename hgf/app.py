@@ -144,13 +144,13 @@ class AppConfig:
 
     def load_style(self, info):
         result = dict()
-        for category, names in info.items():
+        for context, names in info.items():
             for name, attrs in names.items():
                 if name not in result:
                     result[name] = dict()
-                    result[name][category] = dict()
-                elif category not in result[name]:
-                    result[name][category] = dict()
+                    result[name][context] = dict()
+                elif context not in result[name]:
+                    result[name][context] = dict()
                 for attr_name, attr_value in attrs.items():
                     value = attr_value
                     if attr_value[0] == '@':
@@ -164,104 +164,75 @@ class AppConfig:
                             value = self.resources.sounds[attr_value[7:]]
                         elif attr_value.startswith('$music='):
                             value = self.resources.music[attr_value[7:]]
-                    result[name][category][attr_name] = value
+                    result[name][context][attr_name] = value
         return result
 
     def load_options(self, info):
         result = dict()
-        for category, names in info.items():
+        for context, names in info.items():
             for name, attrs in names.items():
                 if name not in result:
                     result[name] = dict()
-                    result[name][category] = dict()
-                elif category not in result[name]:
-                    result[name][category] = dict()
+                    result[name][context] = dict()
+                elif context not in result[name]:
+                    result[name][context] = dict()
                 for attr_name, attr_value in attrs.items():
-                    result[name][category][attr_name] = attr_value
+                    result[name][context][attr_name] = attr_value
         return result
 
     def load_controls(self, info):
         result = dict()
-        for category, controls in info.items():
-            if category not in result:
-                result[category] = dict()
+        for context, controls in info.items():
+            if context not in result:
+                result[context] = dict()
             for name, keys in controls.items():
                 for key in keys:
-                    result[category][key.lower()] = name
+                    result[context][key.lower()] = name
         return result
 
-    def style_get(self, query, name=None, category=None):
-        attempts = ('global', 'global'), (name, 'global'), ('global', category),\
-                   (name, category),\
-                   (name, 'default'), ('default', category), ('default', 'default')
-        for try_name, try_category in attempts:
+    def style_get(self, query, name=None, context=None):
+        attempts = ('global', 'global'), (name, 'global'), ('global', context),\
+                   (name, context),\
+                   (name, 'default'), ('default', context), ('default', 'default')
+        for try_name, try_context in attempts:
             try:
-                return self.style[try_name][try_category][query]
+                return self.style[try_name][try_context][query]
             except KeyError:
                 pass
-        for try_name, try_category in attempts:
+        for try_name, try_context in attempts:
             try:
-                return self.style_packs['default'][try_name][try_category][query]
+                return self.style_packs['default'][try_name][try_context][query]
             except KeyError:
                 pass
-        raise KeyError('Cannot find style \'{}\' for \'{}\' in category \'{}\''.format(query, name, category))
+        raise KeyError('Cannot find style \'{}\' for \'{}\' in context \'{}\''.format(query, name, context))
 
-    def options_get(self, query, name=None, category=None):
-        attempts = ('global', 'global'), (name, 'global'), ('global', category),\
-                   (name, category),\
-                   (name, 'default'), ('default', category), ('default', 'default')
-        for try_name, try_category in attempts:
+    def options_get(self, query, name=None, context=None):
+        attempts = ('global', 'global'), (name, 'global'), ('global', context),\
+                   (name, context),\
+                   (name, 'default'), ('default', context), ('default', 'default')
+        for try_name, try_context in attempts:
             try:
-                return self.options[try_name][try_category][query]
+                return self.options[try_name][try_context][query]
             except KeyError:
                 pass
-        raise KeyError('Cannot find option \'{}\' for \'{}\' in category \'{}\''.format(query, name, category))
+        raise KeyError('Cannot find option \'{}\' for \'{}\' in context \'{}\''.format(query, name, context))
 
-    def controls_get(self, query, category=None):
-        attempts = 'global', category, 'default'
-        for try_category in attempts:
+    def controls_get(self, query, context=None):
+        attempts = 'global', context, 'default'
+        for try_context in attempts:
             try:
-                return self.controls[try_category][query]
+                return self.controls[try_context][query]
             except KeyError:
                 pass
-        raise KeyError('Cannot find command for key \'{}\' in category \'{}\''.format(query, category))
+        raise KeyError('Cannot find command for key \'{}\' in context \'{}\''.format(query, context))
 
-    def style_add(self, query, name, category, value):
+    def style_add(self, query, name, context, value):
         if name not in self.style:
             self.style[name] = dict()
-            self.style[name][category] = dict()
-        elif category not in self.style[name]:
-            self.style[name][category] = dict()
-        self.style[name][category][query] = value
-
-
-class AppManager:
-    def __init__(self, name):
-        self.name = name
-        self._loaded = False
-
-        # Shared data
-        self.directory = AppDirectory(self.name)
-        self.resources = AppResources(self.directory)
-
-        # Style building
-        self.style_packs = None
-        self.compose_style = lambda config: None
-
-        self.setup = lambda root: None
-
-    def load(self):
-        self.directory.load()
-        self.resources.load()
-
-        self._loaded = True
-
-    def launch(self):
-        if not self._loaded:
-            raise RuntimeError('Cannot launch app \'{}\' without loading its manager first'.format(self.name))
-        app = App(self)
-        self.setup(app)
-        return app
+            self.style[name][context] = dict()
+        elif context not in self.style[name]:
+            self.style[name][context] = dict()
+        self.style[name][context][query] = value
 
 
 class App(window.Window):
@@ -274,7 +245,64 @@ class App(window.Window):
         self.config.compose_style = manager.compose_style
         self.config.load()
 
-        super().__init__(self.config.options_get('size', 'window'), **kwargs)
-
+        super().__init__(*self.config.options_get('size', 'window'), **kwargs)
         self.app = self
-        pygame.mixer.music.play(loops=-1)  # TODO: Handle music properly
+
+        self.focus_stack = []
+
+        try:
+            pygame.mixer.music.play(loops=-1)  # TODO: Handle music properly
+        except pygame.error:
+            pass
+
+    def key_down(self, unicode, key, mod):
+        try:
+            self.focus_stack[-1].key_down(unicode, key, mod)
+        except IndexError:
+            pass
+        super().key_down(unicode, key, mod)
+
+    def give_focus(self, component):
+        component.is_focused = True
+        try:
+            self.focus_stack[-1].is_focused = False
+        except IndexError:
+            pass
+        try:
+            self.focus_stack.remove(component)
+        except ValueError:
+            pass
+        self.focus_stack.append(component)
+
+    def remove_focus(self, component):
+        component.is_focused = False
+        self.focus_stack.remove(component)
+
+
+class AppManager:
+    def __init__(self, name, factory=App):
+        self.name = name
+        self._loaded = False
+
+        # Shared data
+        self.directory = AppDirectory(self.name)
+        self.resources = AppResources(self.directory)
+
+        # Style building
+        self.style_packs = None
+        self.compose_style = lambda config: None
+
+        self.factory = factory
+
+    def load(self):
+        self.directory.load()
+        self.resources.load()
+
+        self._loaded = True
+
+    def spawn_app(self):
+        if not self._loaded:
+            raise RuntimeError('Cannot launch app \'{}\' without loading its manager first'.format(self.name))
+        app = self.factory(self)
+        app._prepare()
+        return app

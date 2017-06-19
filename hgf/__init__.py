@@ -18,8 +18,9 @@
 #                                                                             #
 ###############################################################################
 
+from .gui import *
 
-from hgf import util, gui
+from . import util
 
 
 __all__ = ['model', 'gui', 'util']

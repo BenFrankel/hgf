@@ -21,12 +21,13 @@
 
 from . import image, menu, switch, text, window
 
-from .menu import WidgetState, Widget, Button, Menu
-from .switch import Switch, Sequence, Hub
+from .base import Rect, StructuralComponent
 from .image import Image
 from .text import Text
+from .menu import WidgetState, Widget, Button, Menu
+from .text_field import MinorTextField
+from .switch import Switch, Sequence, Hub
 from .window import Window
-from .base import StructuralEntity
 
 
 __all__ = ['base', 'image', 'menu', 'switch', 'text', 'window']
