@@ -23,15 +23,18 @@ from . import base
 
 
 class Text(base.StructuralComponent):
-    def __init__(self, text='', font=None, fontsize=1, fgcolor=None):
+    def __init__(self, text='', font=None, fontsize=14, fgcolor=None):
         super().__init__(0, 0, hover=False, click=False)
         self._text = text
         self._font = font
         self._fontsize = fontsize
         self._font = font
-        self.fgcolor = fgcolor
-        if fgcolor is None:
-            self.fgcolor = (0, 0, 0)
+        self.fgcolor = (0, 0, 0) if fgcolor is None else fgcolor
+
+    def load(self):
+        if self._font is None:
+            self._font = self.style_get('font')
+        super().load()
 
     @property
     def text(self):
@@ -67,6 +70,4 @@ class Text(base.StructuralComponent):
         return self.font.get_metrics(self.text, self.fontsize)
 
     def reload(self):
-        if self._font is None:
-            self._font = self.style_get('font')
         self.background = self.font.render(self.text, fgcolor=self.fgcolor, size=self.fontsize)[0]

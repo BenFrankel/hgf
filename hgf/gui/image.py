@@ -19,17 +19,18 @@
 ###############################################################################
 
 
-# TODO!
-
 from . import base
 
 
 class Image(base.StructuralComponent):
-    def __init__(self, filename=None):
+    def __init__(self, image_name):
         super().__init__(0, 0, hover=False, click=False)
         self._image = None
-        if filename is not None:
-            self.load(filename)
+        self.image_name = image_name
+
+    def load(self):
+        self.image = self._app.get_image(self.image_name)
+        super().load()
 
     @property
     def image(self):

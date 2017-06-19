@@ -270,14 +270,14 @@ class StructuralComponent(Rect):
             self._display.set_colorkey(self.colorkey)
 
         # Dirty Rectangle memory
-        self._dirty = False
+        self._is_dirty = False
         self._dirty_rects = []
         self._dirty_area = 0
 
         self._old_rect = None
         self._old_visible = None
 
-        self._loaded = False
+        self.is_loaded = False
 
     @property
     def is_root(self):
@@ -336,17 +336,17 @@ class StructuralComponent(Rect):
             child.context = other
 
     @property
-    def dirty(self):
+    def is_dirty(self):
         if self._old_visible is None:
             return self._is_visible
-        return self._dirty or self._old_rect != self or self._old_visible != self._is_visible
+        return self._is_dirty or self._old_rect != self or self._old_visible != self._is_visible
 
-    @dirty.setter
-    def dirty(self, other):
+    @is_dirty.setter
+    def is_dirty(self, other):
         if other and not self.is_root:
             for rect in self._dirty_rects:
                 self._clean_dirty_rects(rect)
-        self._dirty = other
+        self._is_dirty = other
 
     @property
     def colorkey(self):
@@ -375,7 +375,11 @@ class StructuralComponent(Rect):
             self._display.set_colorkey(self.colorkey)
         self._background = other
         self.size = other.get_size()
-        self.dirty = True
+        self.is_dirty = True
+
+    def load(self):
+        self.is_loaded = True
+        self.reload()
 
     def reload(self):
         pass
@@ -442,7 +446,7 @@ class StructuralComponent(Rect):
         child.parent = self
         if child.context is None and self.context is not None:
             child.context = self.context
-        child.dirty = child._is_visible
+        child.is_dirty = child._is_visible
         self._children.append(child)
 
     def register_all(self, children):
@@ -515,10 +519,10 @@ class StructuralComponent(Rect):
             self.parent.handle_message(self, message)
 
     def _add_dirty_rect(self, rect):
-        if not self.dirty and rect not in self._dirty_rects:
+        if not self.is_dirty and rect not in self._dirty_rects:
             area = rect.area()
             if area + self._dirty_area > self.area():
-                self.dirty = True
+                self.is_dirty = True
                 self._dirty_area += area
             else:
                 self._dirty_rects.append(rect)
@@ -564,23 +568,20 @@ class StructuralComponent(Rect):
 
     def _draw(self):
         if self._is_visible:
-            if not self._loaded:
-                self._loaded = True
-                self.reload()
             for child in self._children:
-                if not child.is_transparent and child.dirty and not self.dirty:
+                if not child.is_transparent and child.is_dirty and not self.is_dirty:
                     for rect in child._transition_rects():
                         self._add_dirty_rect(rect)
                 if child._is_visible or child._old_visible:
                     child._draw()
             if not self.is_transparent:
-                if self.dirty:
+                if self.is_dirty:
                     self._refresh(self.rel_rect())
                 else:
                     for rect in self._dirty_rects:
                         self._refresh(rect)
-        changed = self.dirty or bool(self._dirty_rects)
-        self.dirty = False
+        changed = self.is_dirty or bool(self._dirty_rects)
+        self.is_dirty = False
         self._dirty_rects = []
         self._old_rect = self.copy_rect()
         self._old_visible = self._is_visible
@@ -614,20 +615,11 @@ class StructuralComponent(Rect):
     def _update(self):
         if not all(self._children[i].z <= self._children[i+1].z for i in range(len(self._children) - 1)):
             self._children.sort(key=lambda x: x.z)
-            self.dirty = True
+            self.is_dirty = True
         for child in self._children:
             if child.is_alive:
                 child._update()
         self.update()
-
-    def prepare(self):
-        self.update()
-        self.reload()
-
-    def _prepare(self):
-        for child in self._children:
-            child._prepare()
-        self.prepare()
 
     def tick(self):
         self._track()

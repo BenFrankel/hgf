@@ -194,9 +194,6 @@ class Timer:
 
 
 class CountdownTimer(Timer):
-    def __init__(self):
-        super().__init__()
-
     def update(self):
         if self.running:
             current_time = Time(s=time.monotonic())

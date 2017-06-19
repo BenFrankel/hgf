@@ -304,5 +304,33 @@ class AppManager:
         if not self._loaded:
             raise RuntimeError('Cannot launch app \'{}\' without loading its manager first'.format(self.name))
         app = self.factory(self)
-        app._prepare()
+        app.load()
         return app
+
+    def get_font(self, name):
+        try:
+            return self.resources.fonts[name]
+        except KeyError:
+            pass
+        raise KeyError('Cannot find the requested font \'{}\''.format(name))
+
+    def get_image(self, name):
+        try:
+            return self.resources.images[name]
+        except KeyError:
+            pass
+        raise KeyError('Cannot find the requested image \'{}\''.format(name))
+
+    def get_music(self, name):
+        try:
+            return self.resources.music[name]
+        except KeyError:
+            pass
+        raise KeyError('Cannot find the requested music \'{}\''.format(name))
+
+    def get_sound(self, name):
+        try:
+            return self.resources.sounds[name]
+        except KeyError:
+            pass
+        raise KeyError('Cannot find the requested sound \'{}\''.format(name))

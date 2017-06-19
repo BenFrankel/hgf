@@ -34,6 +34,11 @@ class Window(base.StructuralComponent):
 
         self.bg_color = None
 
+    def load(self):
+        self.bg_color = self.style_get('bg-color')
+        pygame.display.set_caption(self.options_get('title'))
+        super().load()
+
     def open(self):
         self.surf = pygame.display.set_mode(self.size, *self.args)
 

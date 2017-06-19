@@ -52,12 +52,19 @@ class MinorTextField(Widget):
         super().__init__(*args, focus=True, **kwargs)
         self.name = 'text_field'
 
+        self.text = None
+        self.cursor = None
+        self.cursor_index = 0
+
+    def load(self):
         self.text = Text('', fontsize=self.h // 2, fgcolor=(0, 0, 0))
         self.register(self.text)
+        self.text.load()
 
         self.cursor = Cursor(2, int(self.text.fontsize * 0.85))
-        self.cursor_index = 0
         self.register(self.cursor)
+        self.cursor.load()
+        super().load()
 
     def widget_state_change(self, before, after):
         if after == WidgetState.HOVER:

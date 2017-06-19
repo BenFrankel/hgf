@@ -107,9 +107,14 @@ class Button(Widget):
         self._label_name = label_name
         self.message = message
 
-        self.label = Text(label_name, fontsize=max(self.h // 3, 14), fgcolor=(255, 255, 255))
+        self.label = None
+
+    def load(self):
+        self.label = Text(self._label_name, fontsize=max(self.h // 3, 14), fgcolor=(255, 255, 255))
         self.label.center = self.rel_rect().center
         self.register(self.label)
+        self.label.load()
+        super().load()
 
     @property
     def label_name(self):
@@ -152,7 +157,12 @@ class Menu(StructuralComponent):
     def add_button(self, name, message):
         button = Button(name, message, self.button_w, self.button_h)
         self.buttons.append(button)
-        self.register(button)
+
+    def load(self):
+        for button in self.buttons:
+            self.register(button)
+            button.load()
+        super().load()
 
     def update(self):
         buttons_rect = Rect(w=self.button_w,

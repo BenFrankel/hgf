@@ -27,11 +27,18 @@ class Switch(base.StructuralComponent):
         super().__init__(width, height, opacity=opacity, **kwargs)
         self.location = None
 
+    def load(self):
+        if self.location is not None:
+            self.location.load()
+        super().load()
+
     def enter_node(self, child):
         if self.location is not child:
             if self.location is not None:
                 self.location.hide()
             self.location = child
+            if self.is_loaded and not child.is_loaded:
+                child.load()
             if child.can_focus:
                 child.take_focus()
             child.show()

@@ -29,6 +29,9 @@ class Subject:
         self.state_properties = tuple()
         self._old_state = None
 
+    def load(self):
+        pass
+
     def add_observer(self, observer):
         self._observers.append(observer)
 
@@ -65,11 +68,6 @@ class Subject:
             before = self._old_state
             self._old_state = new_state
             self._notify_all(StateChange(before, new_state))
-
-    def _prepare(self):
-        for child in self._children:
-            child._prepare()
-        self.update()
 
 
 class State:
