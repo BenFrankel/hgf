@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ###############################################################################
 #                                                                             #
 #   Copyright 2017 - Ben Frankel                                              #
@@ -19,10 +17,10 @@
 ###############################################################################
 
 
-from . import base
+from .base import StructuralComponent
 
 
-class Image(base.StructuralComponent):
+class Image(StructuralComponent):
     def __init__(self, image_name):
         super().__init__(0, 0, hover=False, click=False)
         self._image = None

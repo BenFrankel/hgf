@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ###############################################################################
 #                                                                             #
 #   Copyright 2017 - Ben Frankel                                              #
@@ -19,7 +17,15 @@
 ###############################################################################
 
 
-from . import keys, timer
+from . import keys
+
+from .timer import Time, Timer, CountdownTimer
+from .rect import Rect
 
 
-__all__ = ['keys', 'timer']
+__all__ = [
+    'keys',
+    
+    'Time', 'Timer', 'CountdownTimer',
+    'Rect',
+]

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ###############################################################################
 #                                                                             #
 #   Copyright 2017 - Ben Frankel                                              #
@@ -19,15 +17,23 @@
 ###############################################################################
 
 
-from . import image, menu, switch, text, window
-
-from .base import Rect, StructuralComponent
+from .base import StructuralComponent
 from .image import Image
 from .text import Text
-from .menu import WidgetState, Widget, Button, Menu
+from .menu import Widget, Widget, Button, Menu
 from .text_field import MinorTextField
 from .switch import Switch, Sequence, Hub
 from .window import Window
 
 
-__all__ = ['base', 'image', 'menu', 'switch', 'text', 'window']
+__all__ = [
+    'image', 'text',
+
+    'StructuralComponent',
+    'Image',
+    'Text',
+    'Widget', 'Button', 'Menu',
+    'MinorTextField',
+    'Switch', 'Sequence', 'Hub',
+    'Window',
+]

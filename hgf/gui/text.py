@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ###############################################################################
 #                                                                             #
 #   Copyright 2017 - Ben Frankel                                              #
@@ -19,10 +17,10 @@
 ###############################################################################
 
 
-from . import base
+from .base import StructuralComponent
 
 
-class Text(base.StructuralComponent):
+class Text(StructuralComponent):
     def __init__(self, text='', font=None, fontsize=14, fgcolor=None):
         super().__init__(0, 0, hover=False, click=False)
         self._text = text

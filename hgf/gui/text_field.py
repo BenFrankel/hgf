@@ -1,9 +1,26 @@
-from hgf.gui.menu import WidgetState
+###############################################################################
+#                                                                             #
+#   Copyright 2017 - Ben Frankel                                              #
+#                                                                             #
+#   Licensed under the Apache License, Version 2.0 (the "License");           #
+#   you may not use this file except in compliance with the License.          #
+#   You may obtain a copy of the License at                                   #
+#                                                                             #
+#       http://www.apache.org/licenses/LICENSE-2.0                            #
+#                                                                             #
+#   Unless required by applicable law or agreed to in writing, software       #
+#   distributed under the License is distributed on an "AS IS" BASIS,         #
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  #
+#   See the License for the specific language governing permissions and       #
+#   limitations under the License.                                            #
+#                                                                             #
+###############################################################################
 
-from .base import StructuralComponent
-from .text import Text
+
 from .menu import Widget
-from ..util.timer import Timer
+from .text import Text
+from .base import StructuralComponent
+from ..util import Time, CountdownTimer
 
 import pygame
 
@@ -39,8 +56,8 @@ class Cursor(StructuralComponent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.name = 'cursor'
-        self.on = True
-        self.timer = Timer()
+        self.timer = CountdownTimer()
+        self.blink_rate = Time(ms=500)
 
     def pause_hook(self):
         self.timer.pause()
@@ -48,18 +65,26 @@ class Cursor(StructuralComponent):
     def unpause_hook(self):
         self.timer.unpause()
 
+    def activate_hook(self):
+        self.timer.start(self.blink_rate)
+
+    def restart(self):
+        self.timer.restart(self.blink_rate)
+        self.show()
+
+    def update_hook(self):
+        if not self.timer.is_running:
+            self.toggle_show()
+            self.timer.start(self.blink_rate)
+
     def refresh(self):
-        if self.on:
-            self.background = self.style_get('background')(self.size)
-        else:
-            self.background.set_alpha(255)
+        self.background = self.style_get('background')(self.size)
 
 
 class MinorTextField(Widget):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, focus=True, **kwargs)
-        self.name = 'text_field'
-
+        self.name = 'text-field'
         self.text = None
         self.cursor = None
         self.cursor_index = 0
@@ -69,20 +94,29 @@ class MinorTextField(Widget):
         self.register(self.text)
         self.text.load()
 
-        self.cursor = Cursor(2, int(self.text.fontsize * 0.85))
+        self.cursor = Cursor(2, self.text.fontsize)
         self.register(self.cursor)
         self.cursor.load()
+        self.cursor.deactivate()
 
     def widget_state_change_hook(self, before, after):
-        if after == WidgetState.HOVER:
+        if after == Widget.HOVER:
             pygame.mouse.set_cursor(*pygame.cursors.ball)
-        elif before == WidgetState.HOVER:
+        elif before == Widget.HOVER:
             pygame.mouse.set_cursor(*pygame.cursors.arrow)
-        self.refresh()
 
-    def key_down(self, unicode, key, mod):
+    def key_down_hook(self, unicode, key, mod):
+        if key == pygame.K_RETURN:
+            self.send_message('text-entry', text=self.text.text)
+            return
         self.cursor_index, self.text.text = edit(self.text.text, self.cursor_index, unicode, key, mod)
-        print(repr(self.text.text), self.cursor_index)
+        self.cursor.restart()
+
+    def take_focus_hook(self):
+        self.cursor.activate()
+
+    def release_focus_hook(self):
+        self.cursor.deactivate()
 
     def refresh(self):
         self.background = self.style_get('background')(self.size, self.widget_state)
@@ -92,7 +126,6 @@ class MinorTextField(Widget):
         self.text.x = self.text.y
 
         if self.is_focused:
-            self.cursor.show()
             self.cursor.midy = self.text.midy
             if len(self.text.text) == 0:
                 self.cursor.x = (self.h - self.text.get_rect('x').h) // 2
@@ -103,7 +136,3 @@ class MinorTextField(Widget):
             else:
                 metrics = self.text.get_metrics()
                 self.cursor.x = self.text.x + sum(m[4] for m in metrics[:self.cursor_index])
-        else:
-            self.cursor.hide()
-
-        super().update_hook()

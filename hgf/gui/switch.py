@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ###############################################################################
 #                                                                             #
 #   Copyright 2017 - Ben Frankel                                              #
@@ -19,10 +17,10 @@
 ###############################################################################
 
 
-from . import base
+from .base import StructuralComponent
 
 
-class Switch(base.StructuralComponent):
+class Switch(StructuralComponent):
     def __init__(self, width, height, opacity=0, **kwargs):
         super().__init__(width, height, opacity=opacity, **kwargs)
         self.location = None
@@ -34,13 +32,13 @@ class Switch(base.StructuralComponent):
     def enter_node(self, child):
         if self.location is not child:
             if self.location is not None:
-                self.location.hide()
+                self.location.deactivate()
             self.location = child
             if self.is_loaded and not child.is_loaded:
                 child.load()
             if child.can_focus:
                 child.take_focus()
-            child.show()
+            child.activate()
 
 
 class Sequence(Switch):
@@ -64,20 +62,20 @@ class Sequence(Switch):
         self.loc_index = index
         self.enter_node(self.loc_list[index])
 
-    def handle_message(self, sender, message):
+    def handle_message(self, sender, message, **params):
         if message == Sequence.MSG_NEXT and self.loc_index is not None and not self.at_tail:
             self.enter_index(self.loc_index + 1)
         elif message == Sequence.MSG_PREV and self.loc_index is not None and not self.at_head:
             self.enter_index(self.loc_index - 1)
         else:
-            self.send_message(message)
+            self.send_message(message, **params)
 
     def register_index(self, index, child):
         self.loc_list.insert(index, child)
         if self.loc_index is None:
             self.enter_index(index)
         else:
-            child.hide()
+            child.deactivate()
         self.register(child)
 
     def register_head(self, head):
@@ -97,7 +95,7 @@ class Hub(Switch):
         if name in self.loc_nodes:
             raise KeyError('A node with the name {} is already registered.'.format(name))
         self.loc_nodes[name] = node
-        node.hide()
+        node.deactivate()
         self.register(node)
 
     def register_center(self, center):
@@ -105,13 +103,13 @@ class Hub(Switch):
         if self.location is None:
             self.enter_node(center)
         else:
-            center.hide()
+            center.deactivate()
         self.register(center)
 
-    def handle_message(self, sender, message):
+    def handle_message(self, sender, message, **params):
         if message == 'exit' and self.loc_center is not None and self.location is not self.loc_center:
             self.enter_node(self.loc_center)
         elif message in self.loc_nodes:
             self.enter_node(self.loc_nodes[message])
         else:
-            self.send_message(message)
+            self.send_message(message, **params)

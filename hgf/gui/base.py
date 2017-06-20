@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ###############################################################################
 #                                                                             #
 #   Copyright 2017 - Ben Frankel                                              #
@@ -19,211 +17,9 @@
 ###############################################################################
 
 
+from ..util import Rect, keys
+
 import pygame
-
-from hgf.util import keys
-
-
-class Rect:
-    def __init__(self, x=0, y=0, w=0, h=0):
-        self._x = x
-        self._y = y
-        self._w = w
-        self._h = h
-
-    @property
-    def size(self):
-        return self._w, self._h
-
-    @size.setter
-    def size(self, other):
-        self._w, self._h = other
-
-    @property
-    def w(self):
-        return self.size[0]
-
-    @w.setter
-    def w(self, other):
-        self.size = (other, self.size[1])
-
-    @property
-    def h(self):
-        return self.size[1]
-
-    @h.setter
-    def h(self, other):
-        self.size = (self.size[0], other)
-
-    @property
-    def width(self):
-        return self.w
-
-    @width.setter
-    def width(self, other):
-        self.w = other
-
-    @property
-    def height(self):
-        return self.h
-
-    @height.setter
-    def height(self, other):
-        self.h = other
-
-    @property
-    def pos(self):
-        return self._x, self._y
-
-    @pos.setter
-    def pos(self, other):
-        self._x, self._y = other
-
-    topleft = pos
-
-    @property
-    def x(self):
-        return self.pos[0]
-
-    @x.setter
-    def x(self, other):
-        self.pos = (other, self.pos[1])
-
-    left = x
-
-    @property
-    def y(self):
-        return self.pos[1]
-
-    @y.setter
-    def y(self, other):
-        self.pos = (self.pos[0], other)
-
-    top = y
-
-    @property
-    def midx(self):
-        return self.x + self.w // 2
-
-    @midx.setter
-    def midx(self, other):
-        self.x = other - self.w // 2
-
-    @property
-    def right(self):
-        return self.x + self.w
-
-    @right.setter
-    def right(self, other):
-        self.x = other - self.w
-
-    @property
-    def midy(self):
-        return self.y + self.h // 2
-
-    @midy.setter
-    def midy(self, other):
-        self.y = other - self.h // 2
-
-    @property
-    def bottom(self):
-        return self.y + self.h
-
-    @bottom.setter
-    def bottom(self, other):
-        self.y = other - self.h
-
-    @property
-    def midtop(self):
-        return self.midx, self.top
-
-    @midtop.setter
-    def midtop(self, other):
-        self.midx, self.top = other
-
-    @property
-    def topright(self):
-        return self.right, self.top
-
-    @topright.setter
-    def topright(self, other):
-        self.right, self.top = other
-
-    @property
-    def midleft(self):
-        return self.x, self.y + self.h // 2
-
-    @midleft.setter
-    def midleft(self, other):
-        self.left, self.midy = other
-
-    @property
-    def center(self):
-        return self.midx, self.midy
-
-    @center.setter
-    def center(self, other):
-        self.midx, self.midy = other
-
-    @property
-    def midright(self):
-        return self.right, self.midy
-
-    @midright.setter
-    def midright(self, other):
-        self.right, self.midy = other
-
-    @property
-    def bottomleft(self):
-        return self.left, self.bottom
-
-    @bottomleft.setter
-    def bottomleft(self, other):
-        self.left, self.bottom = other
-
-    @property
-    def midbottom(self):
-        return self.midx, self.bottom
-
-    @midbottom.setter
-    def midbottom(self, other):
-        self.midx, self.bottom = other
-
-    @property
-    def bottomright(self):
-        return self.right, self.bottom
-
-    @bottomright.setter
-    def bottomright(self, other):
-        self.right, self.bottom = other
-
-    def area(self):
-        return self.w * self.h
-
-    def collide_point(self, point):
-        return self.left <= point[0] < self.right and self.top <= point[1] < self.bottom
-
-    def collide_rect(self, rect):
-        return self.left < rect.right and rect.left < self.right and self.top < rect.bottom and rect.top < self.bottom
-
-    def intersect(self, rect):
-        result = Rect(max(self.x, rect.x), max(self.y, rect.y))
-        result.w = min(self.right, rect.right) - result.x
-        result.h = min(self.bottom, rect.bottom) - result.y
-        if result.w < 0 or result.h < 0:
-            return None
-        return result
-
-    def as_pygame_rect(self):
-        return pygame.Rect(self.x, self.y, self.w, self.h)
-
-    def __eq__(self, other):
-        return self.x == other.x and self.y == other.y and self.w == other.w and self.h == other.h
-
-    def __str__(self):
-        return '{}({}, {}, {}, {})'.format(self.__class__.__name__, self.x, self.y, self.w, self.h)
-
-    __repr__ = __str__
 
 
 class StructuralComponent(Rect):
@@ -310,10 +106,6 @@ class StructuralComponent(Rect):
     @property
     def is_opaque(self):
         return self._opacity == 2
-
-    @property
-    def is_alive(self):
-        return self._is_visible and not self._is_paused
 
     @property
     def app(self):
@@ -410,7 +202,6 @@ class StructuralComponent(Rect):
 
     def show(self):
         self._is_visible = True
-        self.unpause()
         self.show_hook()
 
     def _parent_hiding(self):
@@ -425,22 +216,13 @@ class StructuralComponent(Rect):
     def hide(self):
         self._is_visible = False
         self._parent_hiding()
-        self.pause()
         self.hide_hook()
 
-    def take_focus_hook(self):
-        pass
-
-    def take_focus(self):
-        self._app.give_focus(self)
-        self.take_focus_hook()
-
-    def release_focus_hook(self):
-        pass
-
-    def release_focus(self):
-        self._app.remove_focus(self)
-        self.release_focus_hook()
+    def toggle_show(self):
+        if self._is_visible:
+            self.hide()
+        else:
+            self.show()
 
     def pause_hook(self):
         pass
@@ -455,6 +237,42 @@ class StructuralComponent(Rect):
     def unpause(self):
         self._is_paused = False
         self.unpause_hook()
+
+    def toggle_pause(self):
+        if self._is_paused:
+            self.unpause()
+        else:
+            self.pause()
+
+    def activate_hook(self):
+        pass
+
+    def activate(self):
+        self.show()
+        self.unpause()
+        self.activate_hook()
+
+    def deactivate_hook(self):
+        pass
+
+    def deactivate(self):
+        self.hide()
+        self.pause()
+        self.deactivate_hook()
+
+    def take_focus_hook(self):
+        pass
+
+    def take_focus(self):
+        self._app.give_focus(self)
+        self.take_focus_hook()
+
+    def release_focus_hook(self):
+        pass
+
+    def release_focus(self):
+        self._app.remove_focus(self)
+        self.release_focus_hook()
 
     def style_get(self, query):
         return self._app.config.style_get(query, self.name, self.context)
@@ -495,14 +313,22 @@ class StructuralComponent(Rect):
         for child in children:
             self.unregister(child)
 
+    def key_down_hook(self, unicode, key, mod):
+        pass
+
     def key_down(self, unicode, key, mod):
         try:
-            self.handle_message(self, self.controls_get(keys.key_name(key, mod)))
+            self.handle_message(self, self.controls_get(keys.from_pygame_key(key, mod)))
         except KeyError:
             pass
 
-    def key_up(self, key, mod):
+        self.key_down_hook(unicode, key, mod)
+
+    def key_up_hook(self, key, mod):
         pass
+
+    def key_up(self, key, mod):
+        self.key_up_hook(key, mod)
 
     def mouse_enter_hook(self, start, end, buttons):
         pass
@@ -510,7 +336,7 @@ class StructuralComponent(Rect):
     def _mouse_enter(self, start, end, buttons):
         self.mouse_enter_hook(start, end, buttons)
         for child in self._children:
-            if child._can_hover and child.is_alive and child.collide_point(end):
+            if child._can_hover and not child._is_paused and child.collide_point(end):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child._mouse_enter(rel_start, rel_end, buttons)
@@ -521,7 +347,7 @@ class StructuralComponent(Rect):
     def _mouse_exit(self, start, end, buttons):
         self.mouse_exit_hook(start, end, buttons)
         for child in self._children:
-            if child._can_hover and child.is_alive and child.collide_point(start):
+            if child._can_hover and not child._is_paused and child.collide_point(start):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child._mouse_exit(rel_start, rel_end, buttons)
@@ -532,7 +358,7 @@ class StructuralComponent(Rect):
     def _mouse_motion(self, start, end, buttons):
         self.mouse_motion_hook(start, end, buttons)
         for child in self._children:
-            if child._can_hover and child.is_alive and child.collide_point(start) and child.collide_point(end):
+            if child._can_hover and not child._is_paused and child.collide_point(start) and child.collide_point(end):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child._mouse_motion(rel_start, rel_end, buttons)
@@ -545,7 +371,7 @@ class StructuralComponent(Rect):
         if self.can_focus and not self.is_focused:
             self.take_focus()
         for child in self._children[::-1]:
-            if child._can_click and child.is_alive and child.collide_point(pos):
+            if child._can_click and not child._is_paused and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
                 child._mouse_down(rel_pos, button)
 
@@ -555,16 +381,16 @@ class StructuralComponent(Rect):
     def _mouse_up(self, pos, button):
         self.mouse_up_hook(pos, button)
         for child in self._children:
-            if child._can_click and child.is_alive and child.collide_point(pos):
+            if child._can_click and not child._is_paused and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
                 child._mouse_up(rel_pos, button)
 
-    def handle_message(self, sender, message):
+    def handle_message(self, sender, message, **params):
         self.send_message(message)
 
-    def send_message(self, message):
+    def send_message(self, message, **params):
         if not self.is_root:
-            self.parent.handle_message(self, message)
+            self.parent.handle_message(self, message, **params)
 
     def _add_dirty_rect(self, rect):
         if not self.is_dirty and rect not in self._dirty_rects:
@@ -655,7 +481,7 @@ class StructuralComponent(Rect):
             self._is_hovered = False
             self._mouse_exit(pos, pos, pygame.mouse.get_pressed())
         for child in self._children:
-            if child.is_alive:
+            if not child._is_paused:
                 child._track()
 
     def update_hook(self):
@@ -666,7 +492,7 @@ class StructuralComponent(Rect):
             self._children.sort(key=lambda x: x.z)
             self.is_dirty = True
         for child in self._children:
-            if child.is_alive:
+            if not child._is_paused:
                 child._update()
         self.update_hook()
 

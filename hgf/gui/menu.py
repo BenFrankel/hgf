@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ###############################################################################
 #                                                                             #
 #   Copyright 2017 - Ben Frankel                                              #
@@ -19,28 +17,25 @@
 ###############################################################################
 
 
-from enum import Enum
+from .text import Text
+from .base import StructuralComponent
+from ..util import Rect
 
 import pygame
 
-from .base import StructuralComponent, Rect
-from .text import Text
 
-
-class WidgetState(Enum):
+class Widget(StructuralComponent):
     IDLE = 0
     HOVER = 1
     PUSH = 2
     PRESS = 3
     PULL = 4
 
-
-class Widget(StructuralComponent):
     def __init__(self, *args, **kwargs):
-        super().__init__(*args, hover=True, click=True, **kwargs)
+        super().__init__(*args, **kwargs)
         self.name = 'widget'
 
-        self._widget_state = WidgetState.IDLE
+        self._widget_state = Widget.IDLE
 
     @property
     def widget_state(self):
@@ -52,46 +47,47 @@ class Widget(StructuralComponent):
             before = self._widget_state
             self._widget_state = other
             self.widget_state_change_hook(before, other)
+            self.refresh()
 
     def widget_state_change_hook(self, before, after):
         pass
 
     def pause_hook(self):
-        self.widget_state = WidgetState.IDLE
+        self.widget_state = Widget.IDLE
 
     def mouse_enter_hook(self, start, end, buttons):
         if self._is_visible:
-            if self.widget_state == WidgetState.IDLE:
+            if self.widget_state == Widget.IDLE:
                 if buttons[0]:
-                    self.widget_state = WidgetState.PUSH
+                    self.widget_state = Widget.PUSH
                 else:
-                    self.widget_state = WidgetState.HOVER
-            elif self.widget_state == WidgetState.PULL:
-                self.widget_state = WidgetState.PRESS
+                    self.widget_state = Widget.HOVER
+            elif self.widget_state == Widget.PULL:
+                self.widget_state = Widget.PRESS
 
     def mouse_exit_hook(self, start, end, buttons):
         if self._is_visible:
-            if self.widget_state == WidgetState.HOVER or self.widget_state == WidgetState.PUSH:
-                self.widget_state = WidgetState.IDLE
-            elif self.widget_state == WidgetState.PRESS:
-                self.widget_state = WidgetState.PULL
+            if self.widget_state == Widget.HOVER or self.widget_state == Widget.PUSH:
+                self.widget_state = Widget.IDLE
+            elif self.widget_state == Widget.PRESS:
+                self.widget_state = Widget.PULL
 
     def mouse_down_hook(self, pos, button):
         if button == 1 and self._is_visible:
-            if self.widget_state != WidgetState.HOVER:
-                self.widget_state = WidgetState.HOVER
-            self.widget_state = WidgetState.PRESS
+            if self.widget_state != Widget.HOVER:
+                self.widget_state = Widget.HOVER
+            self.widget_state = Widget.PRESS
 
     def mouse_up_hook(self, pos, button):
         if button == 1 and self._is_visible:
-            if self.widget_state == WidgetState.PRESS or self.widget_state == WidgetState.PUSH:
-                self.widget_state = WidgetState.HOVER
-            elif self.widget_state == WidgetState.PULL:
-                self.widget_state = WidgetState.IDLE
+            if self.widget_state == Widget.PRESS or self.widget_state == Widget.PUSH:
+                self.widget_state = Widget.HOVER
+            elif self.widget_state == Widget.PULL:
+                self.widget_state = Widget.IDLE
 
     def track_hook(self):
-        if self._is_visible and self.widget_state == WidgetState.PULL and not pygame.mouse.get_pressed()[0]:
-            self.widget_state = WidgetState.IDLE
+        if self._is_visible and self.widget_state == Widget.PULL and not pygame.mouse.get_pressed()[0]:
+            self.widget_state = Widget.IDLE
 
 
 class Button(Widget):
@@ -121,13 +117,12 @@ class Button(Widget):
             self.label.text = other
 
     def widget_state_change_hook(self, before, after):
-        if before == WidgetState.PRESS and after == WidgetState.HOVER:
+        if before == Widget.PRESS and after == Widget.HOVER:
             self.send_message(self.message)
-        self.refresh()
 
     def update_hook(self):
         self.label.center = self.rel_rect().center
-        if self.widget_state == WidgetState.PRESS:
+        if self.widget_state == Widget.PRESS:
             self.label.x -= 1
             self.label.y += 1
 
@@ -138,7 +133,6 @@ class Button(Widget):
 class Menu(StructuralComponent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-
         self.name = 'menu'
 
         self._button_info = []

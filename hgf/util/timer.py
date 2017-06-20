@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ###############################################################################
 #                                                                             #
 #   Copyright 2017 - Ben Frankel                                              #
@@ -148,11 +146,11 @@ class Timer:
     def __init__(self):
         self.last_time = None
         self._time = Time()
-        self.running = False
+        self._is_running = False
 
     @property
     def time(self):
-        if not self.running:
+        if not self._is_running:
             return self._time
         self.update()
         return self._time
@@ -161,41 +159,49 @@ class Timer:
     def time(self, other):
         self._time = other
 
+    @property
+    def is_running(self):
+        if not self._is_running:
+            return False
+        self.update()
+        return self._is_running
+
+    @is_running.setter
+    def is_running(self, other):
+        self._is_running = other
+
     def start(self, start_time=Time()):
         self.time = start_time
         self.last_time = Time(s=time.monotonic())
-        self.running = True
+        self._is_running = True
 
     def update(self):
-        if self.running:
+        if self._is_running:
             current_time = Time(s=time.monotonic())
             self._time += current_time - self.last_time
             self.last_time = current_time
 
     def pause(self):
         self.update()
-        self.running = False
+        self._is_running = False
 
     def unpause(self):
         self.last_time = Time(s=time.monotonic())
-        self.running = True
+        self._is_running = True
 
     def reset(self):
         self.last_time = None
         self.time = Time()
-        self.running = False
+        self._is_running = False
 
-    def restart(self):
+    def restart(self, start_time=Time()):
         self.reset()
-        self.start()
-
-    def __eq__(self, other):
-        return self.time == other.time and self.running == other.running
+        self.start(start_time)
 
 
 class CountdownTimer(Timer):
     def update(self):
-        if self.running:
+        if self._is_running:
             current_time = Time(s=time.monotonic())
             self._time -= current_time - self.last_time
             self.last_time = current_time

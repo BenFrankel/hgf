@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ###############################################################################
 #                                                                             #
 #   Copyright 2017 - Ben Frankel                                              #
@@ -91,7 +89,7 @@ keys = {
 }
 
 
-def key_name(key, mod):
+def from_pygame_key(key, mod):
     result = ''
     for pure_mod, name in mods.items():
         if mod & pure_mod:

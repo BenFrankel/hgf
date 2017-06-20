@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ###############################################################################
 #                                                                             #
 #   Copyright 2017 - Ben Frankel                                              #
@@ -19,13 +17,13 @@
 ###############################################################################
 
 
-import json
-import os.path
+from .gui import Window
 
 import pygame
 import pygame.freetype
 
-from hgf.gui import window
+import json
+import os.path
 
 
 pygame.freetype.init()
@@ -236,7 +234,7 @@ class AppConfig:
         self.style[name][context][query] = value
 
 
-class App(window.Window):
+class App(Window):
     def __init__(self, manager, **kwargs):
         self.directory = manager.directory
         self.resources = manager.resources
@@ -256,8 +254,7 @@ class App(window.Window):
         except pygame.error:
             pass
 
-    def key_down(self, unicode, key, mod):
-        super().key_down(unicode, key, mod)
+    def key_down_hook(self, unicode, key, mod):
         try:
             self.focus_stack[-1].key_down(unicode, key, mod)
         except IndexError:

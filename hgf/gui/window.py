@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 ###############################################################################
 #                                                                             #
 #   Copyright 2017 Ben Frankel                                                #
@@ -19,12 +17,14 @@
 ###############################################################################
 
 
+from .base import StructuralComponent
+
 import pygame
 
-from . import base
 
+class Window(StructuralComponent):
+    MSG_EXIT = 'exit'
 
-class Window(base.StructuralComponent):
     def __init__(self, w, h, *args, **kwargs):
         super().__init__(w, h, **kwargs)
         self.name = 'window'
@@ -54,8 +54,8 @@ class Window(base.StructuralComponent):
         elif event.type == pygame.MOUSEBUTTONUP:
             self._mouse_up(event.pos, event.button)
 
-    def handle_message(self, sender, message):
-        if message == 'exit':
+    def handle_message(self, sender, message, **params):
+        if message == Window.MSG_EXIT:
             exit()
         # TODO: Warn about unhandled message?
 
