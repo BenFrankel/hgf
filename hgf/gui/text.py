@@ -31,10 +31,9 @@ class Text(base.StructuralComponent):
         self._font = font
         self.fgcolor = (0, 0, 0) if fgcolor is None else fgcolor
 
-    def load(self):
+    def load_hook(self):
         if self._font is None:
             self._font = self.style_get('font')
-        super().load()
 
     @property
     def text(self):
@@ -44,7 +43,7 @@ class Text(base.StructuralComponent):
     def text(self, other):
         if self._text != other:
             self._text = other
-            self.reload()
+            self.refresh()
 
     @property
     def font(self):
@@ -54,7 +53,7 @@ class Text(base.StructuralComponent):
     def font(self, other):
         if self._font != other:
             self._font = other
-            self.reload()
+            self.refresh()
 
     @property
     def fontsize(self):
@@ -64,10 +63,13 @@ class Text(base.StructuralComponent):
     def fontsize(self, other):
         if self._fontsize != other:
             self._fontsize = other
-            self.reload()
+            self.refresh()
 
     def get_metrics(self):
         return self.font.get_metrics(self.text, self.fontsize)
 
-    def reload(self):
+    def get_rect(self, text=None):
+        return self.font.get_rect(self.text if text is None else text, size=self.fontsize)
+
+    def refresh(self):
         self.background = self.font.render(self.text, fgcolor=self.fgcolor, size=self.fontsize)[0]

@@ -377,17 +377,21 @@ class StructuralComponent(Rect):
         self.size = other.get_size()
         self.is_dirty = True
 
-    def load(self):
-        self.is_loaded = True
-        self.reload()
+    def load_hook(self):
+        pass
 
-    def reload(self):
+    def load(self):
+        self.load_hook()
+        self.is_loaded = True
+        self.refresh()
+
+    def refresh(self):
         pass
 
     def resize(self, size):
         if self.size != size:
             self.size = size
-            self.reload()
+            self.refresh()
 
     def copy_rect(self):
         return Rect(self.x, self.y, self.w, self.h)
@@ -401,9 +405,13 @@ class StructuralComponent(Rect):
         abs_pos = self.parent.abs_rect().pos
         return Rect(abs_pos[0] - self.pos[0], abs_pos[1] - self.pos[1], self.w, self.h)
 
+    def show_hook(self):
+        pass
+
     def show(self):
         self._is_visible = True
         self.unpause()
+        self.show_hook()
 
     def _parent_hiding(self):
         if self.is_focused:
@@ -411,22 +419,42 @@ class StructuralComponent(Rect):
         for child in self._children:
             child._parent_hiding()
 
+    def hide_hook(self):
+        pass
+
     def hide(self):
         self._is_visible = False
         self._parent_hiding()
         self.pause()
+        self.hide_hook()
+
+    def take_focus_hook(self):
+        pass
 
     def take_focus(self):
         self._app.give_focus(self)
+        self.take_focus_hook()
+
+    def release_focus_hook(self):
+        pass
 
     def release_focus(self):
         self._app.remove_focus(self)
+        self.release_focus_hook()
+
+    def pause_hook(self):
+        pass
 
     def pause(self):
         self._is_paused = True
+        self.pause_hook()
+
+    def unpause_hook(self):
+        pass
 
     def unpause(self):
         self._is_paused = False
+        self.unpause_hook()
 
     def style_get(self, query):
         return self._app.config.style_get(query, self.name, self.context)
@@ -476,40 +504,60 @@ class StructuralComponent(Rect):
     def key_up(self, key, mod):
         pass
 
-    def mouse_enter(self, start, end, buttons):
+    def mouse_enter_hook(self, start, end, buttons):
+        pass
+
+    def _mouse_enter(self, start, end, buttons):
+        self.mouse_enter_hook(start, end, buttons)
         for child in self._children:
             if child._can_hover and child.is_alive and child.collide_point(end):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
-                child.mouse_enter(rel_start, rel_end, buttons)
+                child._mouse_enter(rel_start, rel_end, buttons)
 
-    def mouse_exit(self, start, end, buttons):
+    def mouse_exit_hook(self, start, end, buttons):
+        pass
+
+    def _mouse_exit(self, start, end, buttons):
+        self.mouse_exit_hook(start, end, buttons)
         for child in self._children:
             if child._can_hover and child.is_alive and child.collide_point(start):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
-                child.mouse_exit(rel_start, rel_end, buttons)
+                child._mouse_exit(rel_start, rel_end, buttons)
 
-    def mouse_motion(self, start, end, buttons):
+    def mouse_motion_hook(self, start, end, buttons):
+        pass
+
+    def _mouse_motion(self, start, end, buttons):
+        self.mouse_motion_hook(start, end, buttons)
         for child in self._children:
             if child._can_hover and child.is_alive and child.collide_point(start) and child.collide_point(end):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
-                child.mouse_motion(rel_start, rel_end, buttons)
+                child._mouse_motion(rel_start, rel_end, buttons)
 
-    def mouse_down(self, pos, button):
+    def mouse_down_hook(self, pos, button):
+        pass
+
+    def _mouse_down(self, pos, button):
+        self.mouse_down_hook(pos, button)
         if self.can_focus and not self.is_focused:
             self.take_focus()
         for child in self._children[::-1]:
             if child._can_click and child.is_alive and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
-                child.mouse_down(rel_pos, button)
+                child._mouse_down(rel_pos, button)
 
-    def mouse_up(self, pos, button):
+    def mouse_up_hook(self, pos, button):
+        pass
+
+    def _mouse_up(self, pos, button):
+        self.mouse_up_hook(pos, button)
         for child in self._children:
             if child._can_click and child.is_alive and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
-                child.mouse_up(rel_pos, button)
+                child._mouse_up(rel_pos, button)
 
     def handle_message(self, sender, message):
         self.send_message(message)
@@ -551,7 +599,7 @@ class StructuralComponent(Rect):
             return [self.copy_rect()]
         return []
 
-    def _refresh(self, rect):
+    def _redraw_area(self, rect):
         children = self._children[:]
         self._display.fill(self.colorkey, rect.as_pygame_rect())
         self._display.blit(self._background, rect.pos, rect.as_pygame_rect())
@@ -576,10 +624,10 @@ class StructuralComponent(Rect):
                     child._draw()
             if not self.is_transparent:
                 if self.is_dirty:
-                    self._refresh(self.rel_rect())
+                    self._redraw_area(self.rel_rect())
                 else:
                     for rect in self._dirty_rects:
-                        self._refresh(rect)
+                        self._redraw_area(rect)
         changed = self.is_dirty or bool(self._dirty_rects)
         self.is_dirty = False
         self._dirty_rects = []
@@ -587,11 +635,12 @@ class StructuralComponent(Rect):
         self._old_visible = self._is_visible
         return changed
 
-    def track(self):
+    def track_hook(self):
         pass
 
-    def _track(self):  # Necessary because important mouse events may be lost due to quick movement
-        self.track()
+    # Catch quick mouse events
+    def _track(self):
+        self.track_hook()
         pos = pygame.mouse.get_pos()
         if not self.is_root:
             pos = tuple(x1 - x2 for x1, x2 in zip(pos, self.parent.abs_rect().pos))
@@ -599,17 +648,17 @@ class StructuralComponent(Rect):
             rel = pygame.mouse.get_rel()
             self._is_hovered = not self._is_hovered
             if self._is_hovered:
-                self.mouse_enter((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
+                self._mouse_enter((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
             else:
-                self.mouse_exit((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
+                self._mouse_exit((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
         if self._is_hovered and not pygame.mouse.get_focused():
             self._is_hovered = False
-            self.mouse_exit(pos, pos, pygame.mouse.get_pressed())
+            self._mouse_exit(pos, pos, pygame.mouse.get_pressed())
         for child in self._children:
             if child.is_alive:
                 child._track()
 
-    def update(self):
+    def update_hook(self):
         pass
 
     def _update(self):
@@ -619,7 +668,7 @@ class StructuralComponent(Rect):
         for child in self._children:
             if child.is_alive:
                 child._update()
-        self.update()
+        self.update_hook()
 
     def tick(self):
         self._track()

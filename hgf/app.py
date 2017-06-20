@@ -65,6 +65,7 @@ class AppResources:
         for name, filename in info.items():
             try:
                 font = pygame.freetype.Font(self.directory.get_path('fonts', filename))
+                font.pad = True
             except OSError as err:
                 raise FileNotFoundError('Unable to load font \'{}\''.format(filename)) from err
             else:
@@ -256,11 +257,11 @@ class App(window.Window):
             pass
 
     def key_down(self, unicode, key, mod):
+        super().key_down(unicode, key, mod)
         try:
             self.focus_stack[-1].key_down(unicode, key, mod)
         except IndexError:
             pass
-        super().key_down(unicode, key, mod)
 
     def give_focus(self, component):
         component.is_focused = True

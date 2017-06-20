@@ -51,16 +51,15 @@ class Widget(StructuralComponent):
         if self._widget_state != other:
             before = self._widget_state
             self._widget_state = other
-            self.widget_state_change(before, other)
+            self.widget_state_change_hook(before, other)
 
-    def widget_state_change(self, before, after):
+    def widget_state_change_hook(self, before, after):
         pass
 
-    def pause(self):
+    def pause_hook(self):
         self.widget_state = WidgetState.IDLE
-        super().pause()
 
-    def mouse_enter(self, start, end, buttons):
+    def mouse_enter_hook(self, start, end, buttons):
         if self._is_visible:
             if self.widget_state == WidgetState.IDLE:
                 if buttons[0]:
@@ -69,32 +68,28 @@ class Widget(StructuralComponent):
                     self.widget_state = WidgetState.HOVER
             elif self.widget_state == WidgetState.PULL:
                 self.widget_state = WidgetState.PRESS
-        super().mouse_enter(start, end, buttons)
 
-    def mouse_exit(self, start, end, buttons):
+    def mouse_exit_hook(self, start, end, buttons):
         if self._is_visible:
             if self.widget_state == WidgetState.HOVER or self.widget_state == WidgetState.PUSH:
                 self.widget_state = WidgetState.IDLE
             elif self.widget_state == WidgetState.PRESS:
                 self.widget_state = WidgetState.PULL
-        super().mouse_exit(start, end, buttons)
 
-    def mouse_down(self, pos, button):
+    def mouse_down_hook(self, pos, button):
         if button == 1 and self._is_visible:
             if self.widget_state != WidgetState.HOVER:
                 self.widget_state = WidgetState.HOVER
             self.widget_state = WidgetState.PRESS
-        super().mouse_down(pos, button)
 
-    def mouse_up(self, pos, button):
+    def mouse_up_hook(self, pos, button):
         if button == 1 and self._is_visible:
             if self.widget_state == WidgetState.PRESS or self.widget_state == WidgetState.PUSH:
                 self.widget_state = WidgetState.HOVER
             elif self.widget_state == WidgetState.PULL:
                 self.widget_state = WidgetState.IDLE
-        super().mouse_up(pos, button)
 
-    def track(self):
+    def track_hook(self):
         if self._is_visible and self.widget_state == WidgetState.PULL and not pygame.mouse.get_pressed()[0]:
             self.widget_state = WidgetState.IDLE
 
@@ -109,12 +104,11 @@ class Button(Widget):
 
         self.label = None
 
-    def load(self):
+    def load_hook(self):
         self.label = Text(self._label_name, fontsize=max(self.h // 3, 14), fgcolor=(255, 255, 255))
         self.label.center = self.rel_rect().center
         self.register(self.label)
         self.label.load()
-        super().load()
 
     @property
     def label_name(self):
@@ -126,20 +120,19 @@ class Button(Widget):
             self._label_name = other
             self.label.text = other
 
-    def widget_state_change(self, before, after):
+    def widget_state_change_hook(self, before, after):
         if before == WidgetState.PRESS and after == WidgetState.HOVER:
             self.send_message(self.message)
-        self.reload()
+        self.refresh()
 
-    def reload(self):
-        self.background = self.style_get('background')(self.size, self.widget_state)
-
-    def update(self):
+    def update_hook(self):
         self.label.center = self.rel_rect().center
         if self.widget_state == WidgetState.PRESS:
             self.label.x -= 1
             self.label.y += 1
-        super().update()
+
+    def refresh(self):
+        self.background = self.style_get('background')(self.size, self.widget_state)
 
 
 class Menu(StructuralComponent):
@@ -148,6 +141,7 @@ class Menu(StructuralComponent):
 
         self.name = 'menu'
 
+        self._button_info = []
         self.buttons = []
 
         self.button_gap = self.h // 50
@@ -155,16 +149,16 @@ class Menu(StructuralComponent):
         self.button_h = self.h // 10
 
     def add_button(self, name, message):
-        button = Button(name, message, self.button_w, self.button_h)
-        self.buttons.append(button)
+        self._button_info.append((name, message))
 
-    def load(self):
-        for button in self.buttons:
-            self.register(button)
-            button.load()
-        super().load()
+    def load_hook(self):
+        for button_info in self._button_info:
+            self.buttons.append(Button(*button_info, self.button_w, self.button_h))
+            self.register(self.buttons[-1])
+            self.buttons[-1].load()
+        del self._button_info
 
-    def update(self):
+    def update_hook(self):
         buttons_rect = Rect(w=self.button_w,
                             h=len(self.buttons) * (self.button_h + self.button_gap) - self.button_gap)
         button_x = self.midx - buttons_rect.midx

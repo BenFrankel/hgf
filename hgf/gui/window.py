@@ -34,10 +34,9 @@ class Window(base.StructuralComponent):
 
         self.bg_color = None
 
-    def load(self):
+    def load_hook(self):
         self.bg_color = self.style_get('bg-color')
         pygame.display.set_caption(self.options_get('title'))
-        super().load()
 
     def open(self):
         self.surf = pygame.display.set_mode(self.size, *self.args)
@@ -49,19 +48,18 @@ class Window(base.StructuralComponent):
             self.key_up(event.key, event.mod)
         elif event.type == pygame.MOUSEMOTION:
             start = (event.pos[0] - event.rel[0], event.pos[1] - event.rel[1])
-            self.mouse_motion(start, event.pos, event.buttons)
+            self._mouse_motion(start, event.pos, event.buttons)
         elif event.type == pygame.MOUSEBUTTONDOWN:
-            self.mouse_down(event.pos, event.button)
+            self._mouse_down(event.pos, event.button)
         elif event.type == pygame.MOUSEBUTTONUP:
-            self.mouse_up(event.pos, event.button)
+            self._mouse_up(event.pos, event.button)
 
     def handle_message(self, sender, message):
         if message == 'exit':
             exit()
-        else:
-            super().handle_message(sender, message)
+        # TODO: Warn about unhandled message?
 
-    def reload(self):
+    def refresh(self):
         self.bg_color = self.style_get('bg-color')
         pygame.display.set_caption(self.options_get('title'))
 

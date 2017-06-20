@@ -28,9 +28,8 @@ class Image(base.StructuralComponent):
         self._image = None
         self.image_name = image_name
 
-    def load(self):
+    def load_hook(self):
         self.image = self._app.get_image(self.image_name)
-        super().load()
 
     @property
     def image(self):

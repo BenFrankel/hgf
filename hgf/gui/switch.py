@@ -27,10 +27,9 @@ class Switch(base.StructuralComponent):
         super().__init__(width, height, opacity=opacity, **kwargs)
         self.location = None
 
-    def load(self):
+    def load_hook(self):
         if self.location is not None:
             self.location.load()
-        super().load()
 
     def enter_node(self, child):
         if self.location is not child:
@@ -71,7 +70,7 @@ class Sequence(Switch):
         elif message == Sequence.MSG_PREV and self.loc_index is not None and not self.at_head:
             self.enter_index(self.loc_index - 1)
         else:
-            super().handle_message(sender, message)
+            self.send_message(message)
 
     def register_index(self, index, child):
         self.loc_list.insert(index, child)
@@ -115,4 +114,4 @@ class Hub(Switch):
         elif message in self.loc_nodes:
             self.enter_node(self.loc_nodes[message])
         else:
-            super().handle_message(sender, message)
+            self.send_message(message)

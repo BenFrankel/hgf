@@ -29,8 +29,14 @@ class Subject:
         self.state_properties = tuple()
         self._old_state = None
 
-    def load(self):
+        self.is_loaded = False
+
+    def load_hook(self):
         pass
+
+    def load(self):
+        self.load_hook()
+        self.is_loaded = True
 
     def add_observer(self, observer):
         self._observers.append(observer)
@@ -56,13 +62,13 @@ class Subject:
     def _get_state(self):
         return State(self.state_properties, tuple(getattr(self, attr) for attr in self.state_properties))
 
-    def update(self):
+    def update_hook(self):
         pass
 
-    def _update(self):
-        self.update()
+    def update(self):
+        self.update_hook()
         for child in self._children:
-            child._update()
+            child.update()
         new_state = self._get_state()
         if self._old_state != new_state:
             before = self._old_state
