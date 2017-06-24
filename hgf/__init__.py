@@ -17,17 +17,14 @@
 ###############################################################################
 
 
-from .gui import image, text
-
 from .app import\
     AppManager, App
 
 from .gui import\
     StructuralComponent,\
     Image,\
-    Text,\
+    Text, TextBox, TextEntryBox,\
     Widget, Button, Menu,\
-    MinorTextField,\
     Switch, Sequence, Hub,\
     Window
 
@@ -37,17 +34,15 @@ from .util import\
 
 
 __all__ = [
-    'image', 'text',
-
     'AppManager', 'App',
 
-    'StructuralComponent',
+    'Window',
+    'Switch', 'Sequence', 'Hub',
+    'TextBox', 'TextEntryBox',
+    'Widget', 'Button', 'Menu',
     'Image',
     'Text',
-    'Widget', 'Button', 'Menu',
-    'MinorTextField',
-    'Switch', 'Sequence', 'Hub',
-    'Window',
+    'StructuralComponent',
 
     'Rect',
     'Time', 'Timer', 'CountdownTimer',

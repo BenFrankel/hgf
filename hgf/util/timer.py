@@ -198,6 +198,9 @@ class Timer:
         self.reset()
         self.start(start_time)
 
+    def __str__(self):
+        return '{}({}, is_running={})'.format(self.__class__.__name__, self.time, self.is_running)
+
 
 class CountdownTimer(Timer):
     def update(self):

@@ -33,8 +33,6 @@ class Widget(StructuralComponent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = 'widget'
-
         self._widget_state = Widget.IDLE
 
     @property
@@ -56,7 +54,7 @@ class Widget(StructuralComponent):
         self.widget_state = Widget.IDLE
 
     def mouse_enter_hook(self, start, end, buttons):
-        if self._is_visible:
+        if self.is_visible:
             if self.widget_state == Widget.IDLE:
                 if buttons[0]:
                     self.widget_state = Widget.PUSH
@@ -66,34 +64,34 @@ class Widget(StructuralComponent):
                 self.widget_state = Widget.PRESS
 
     def mouse_exit_hook(self, start, end, buttons):
-        if self._is_visible:
+        if self.is_visible:
             if self.widget_state == Widget.HOVER or self.widget_state == Widget.PUSH:
                 self.widget_state = Widget.IDLE
             elif self.widget_state == Widget.PRESS:
                 self.widget_state = Widget.PULL
 
     def mouse_down_hook(self, pos, button):
-        if button == 1 and self._is_visible:
+        if button == 1 and self.is_visible:
             if self.widget_state != Widget.HOVER:
                 self.widget_state = Widget.HOVER
             self.widget_state = Widget.PRESS
 
     def mouse_up_hook(self, pos, button):
-        if button == 1 and self._is_visible:
+        if button == 1 and self.is_visible:
             if self.widget_state == Widget.PRESS or self.widget_state == Widget.PUSH:
                 self.widget_state = Widget.HOVER
             elif self.widget_state == Widget.PULL:
                 self.widget_state = Widget.IDLE
 
     def track_hook(self):
-        if self._is_visible and self.widget_state == Widget.PULL and not pygame.mouse.get_pressed()[0]:
+        if self.is_visible and self.widget_state == Widget.PULL and not pygame.mouse.get_pressed()[0]:
             self.widget_state = Widget.IDLE
 
 
 class Button(Widget):
     def __init__(self, label_name, message, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = 'button'
+        self.type = 'button'
 
         self._label_name = label_name
         self.message = message
@@ -120,7 +118,7 @@ class Button(Widget):
         if before == Widget.PRESS and after == Widget.HOVER:
             self.send_message(self.message)
 
-    def update_hook(self):
+    def tick_hook(self):
         self.label.center = self.rel_rect().center
         if self.widget_state == Widget.PRESS:
             self.label.x -= 1
@@ -133,7 +131,7 @@ class Button(Widget):
 class Menu(StructuralComponent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.name = 'menu'
+        self.type = 'menu'
 
         self._button_info = []
         self.buttons = []
@@ -152,7 +150,7 @@ class Menu(StructuralComponent):
             self.buttons[-1].load()
         del self._button_info
 
-    def update_hook(self):
+    def tick_hook(self):
         buttons_rect = Rect(w=self.button_w,
                             h=len(self.buttons) * (self.button_h + self.button_gap) - self.button_gap)
         button_x = self.midx - buttons_rect.midx

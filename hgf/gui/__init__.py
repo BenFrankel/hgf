@@ -17,23 +17,21 @@
 ###############################################################################
 
 
-from .base import StructuralComponent
+from .window import Window
+from .switch import Switch, Sequence, Hub
+from .text_entry import TextBox, TextEntryBox
+from .menu import Widget, Button, Menu
 from .image import Image
 from .text import Text
-from .menu import Widget, Widget, Button, Menu
-from .text_field import MinorTextField
-from .switch import Switch, Sequence, Hub
-from .window import Window
+from .base import StructuralComponent
 
 
 __all__ = [
-    'image', 'text',
-
-    'StructuralComponent',
+    'Window',
+    'Switch', 'Sequence', 'Hub',
+    'TextBox', 'TextEntryBox',
+    'Widget', 'Button', 'Menu',
     'Image',
     'Text',
-    'Widget', 'Button', 'Menu',
-    'MinorTextField',
-    'Switch', 'Sequence', 'Hub',
-    'Window',
+    'StructuralComponent',
 ]

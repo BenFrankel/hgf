@@ -27,7 +27,7 @@ class StructuralComponent(Rect):
         super().__init__(x, y, w, h)
 
         # Config identification
-        self.name = None
+        self.type = None
         self._context = None
 
         # Hierarchical references
@@ -39,13 +39,13 @@ class StructuralComponent(Rect):
         self.z = 0
 
         # General flags
-        self._is_visible = visible
-        self._can_hover = hover
-        self._can_click = click
+        self.is_visible = visible
+        self.can_hover = hover
+        self.can_click = click
         self.can_focus = focus
         self._opacity = opacity
-        self._is_paused = False
-        self._is_hovered = False
+        self.is_paused = False
+        self.is_hovered = False
         self.is_focused = False
 
         # Surfaces
@@ -78,22 +78,6 @@ class StructuralComponent(Rect):
     @property
     def is_root(self):
         return self.parent is None
-
-    @property
-    def is_visible(self):
-        return self._is_visible and (self.is_root or self.parent.is_visible)
-
-    @property
-    def can_hover(self):
-        return self._can_hover and (self.is_root or self.parent.can_hover)
-
-    @property
-    def can_click(self):
-        return self._can_click and (self.is_root or self.parent.can_click)
-
-    @property
-    def is_paused(self):
-        return self._is_paused or not self.is_root and self.parent.is_paused
 
     @property
     def is_transparent(self):
@@ -130,8 +114,8 @@ class StructuralComponent(Rect):
     @property
     def is_dirty(self):
         if self._old_visible is None:
-            return self._is_visible
-        return self._is_dirty or self._old_rect != self or self._old_visible != self._is_visible
+            return self.is_visible
+        return self._is_dirty or self._old_rect != self or self._old_visible != self.is_visible
 
     @is_dirty.setter
     def is_dirty(self, other):
@@ -201,12 +185,12 @@ class StructuralComponent(Rect):
         pass
 
     def show(self):
-        self._is_visible = True
+        self.is_visible = True
         self.show_hook()
 
     def _parent_hiding(self):
         if self.is_focused:
-            self.release_focus()
+            self.lose_focus()
         for child in self._children:
             child._parent_hiding()
 
@@ -214,12 +198,12 @@ class StructuralComponent(Rect):
         pass
 
     def hide(self):
-        self._is_visible = False
+        self.is_visible = False
         self._parent_hiding()
         self.hide_hook()
 
     def toggle_show(self):
-        if self._is_visible:
+        if self.is_visible:
             self.hide()
         else:
             self.show()
@@ -228,18 +212,18 @@ class StructuralComponent(Rect):
         pass
 
     def pause(self):
-        self._is_paused = True
+        self.is_paused = True
         self.pause_hook()
 
     def unpause_hook(self):
         pass
 
     def unpause(self):
-        self._is_paused = False
+        self.is_paused = False
         self.unpause_hook()
 
     def toggle_pause(self):
-        if self._is_paused:
+        if self.is_paused:
             self.unpause()
         else:
             self.pause()
@@ -267,18 +251,18 @@ class StructuralComponent(Rect):
         self._app.give_focus(self)
         self.take_focus_hook()
 
-    def release_focus_hook(self):
+    def lose_focus_hook(self):
         pass
 
-    def release_focus(self):
+    def lose_focus(self):
         self._app.remove_focus(self)
-        self.release_focus_hook()
+        self.lose_focus_hook()
 
     def style_get(self, query):
-        return self._app.config.style_get(query, self.name, self.context)
+        return self._app.config.style_get(query, self.type, self.context)
 
     def options_get(self, query):
-        return self._app.config.options_get(query, self.name, self.context)
+        return self._app.config.options_get(query, self.type, self.context)
 
     def controls_get(self, query):
         return self._app.config.controls_get(query, self.context)
@@ -292,7 +276,7 @@ class StructuralComponent(Rect):
         child.parent = self
         if child.context is None and self.context is not None:
             child.context = self.context
-        child.is_dirty = child._is_visible
+        child.is_dirty = child.is_visible
         self._children.append(child)
 
     def register_all(self, children):
@@ -307,11 +291,19 @@ class StructuralComponent(Rect):
         if child._old_visible and child._old_rect is not None:
             self._add_dirty_rect(child._old_rect)
         if child.is_focused:
-            child.release_focus()
+            child.lose_focus()
 
     def unregister_all(self, children):
         for child in children:
             self.unregister(child)
+
+    def register_load(self, child):
+        self.register(child)
+        child.load()
+
+    def register_load_all(self, children):
+        for child in children:
+            self.register_load(child)
 
     def key_down_hook(self, unicode, key, mod):
         pass
@@ -321,7 +313,6 @@ class StructuralComponent(Rect):
             self.handle_message(self, self.controls_get(keys.from_pygame_key(key, mod)))
         except KeyError:
             pass
-
         self.key_down_hook(unicode, key, mod)
 
     def key_up_hook(self, key, mod):
@@ -336,7 +327,7 @@ class StructuralComponent(Rect):
     def _mouse_enter(self, start, end, buttons):
         self.mouse_enter_hook(start, end, buttons)
         for child in self._children:
-            if child._can_hover and not child._is_paused and child.collide_point(end):
+            if child.can_hover and not child.is_paused and child.collide_point(end):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child._mouse_enter(rel_start, rel_end, buttons)
@@ -347,7 +338,7 @@ class StructuralComponent(Rect):
     def _mouse_exit(self, start, end, buttons):
         self.mouse_exit_hook(start, end, buttons)
         for child in self._children:
-            if child._can_hover and not child._is_paused and child.collide_point(start):
+            if child.can_hover and not child.is_paused and child.collide_point(start):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child._mouse_exit(rel_start, rel_end, buttons)
@@ -358,7 +349,7 @@ class StructuralComponent(Rect):
     def _mouse_motion(self, start, end, buttons):
         self.mouse_motion_hook(start, end, buttons)
         for child in self._children:
-            if child._can_hover and not child._is_paused and child.collide_point(start) and child.collide_point(end):
+            if child.can_hover and not child.is_paused and child.collide_point(start) and child.collide_point(end):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child._mouse_motion(rel_start, rel_end, buttons)
@@ -371,7 +362,7 @@ class StructuralComponent(Rect):
         if self.can_focus and not self.is_focused:
             self.take_focus()
         for child in self._children[::-1]:
-            if child._can_click and not child._is_paused and child.collide_point(pos):
+            if child.can_click and not child.is_paused and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
                 child._mouse_down(rel_pos, button)
 
@@ -381,7 +372,7 @@ class StructuralComponent(Rect):
     def _mouse_up(self, pos, button):
         self.mouse_up_hook(pos, button)
         for child in self._children:
-            if child._can_click and not child._is_paused and child.collide_point(pos):
+            if child.can_click and not child.is_paused and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
                 child._mouse_up(rel_pos, button)
 
@@ -410,7 +401,7 @@ class StructuralComponent(Rect):
             self.parent._clean_dirty_rects(Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h))
 
     def _transition_rects(self):
-        if self._old_visible and self._is_visible:
+        if self._old_visible and self.is_visible:
             old = self._old_rect
             comb = Rect(min(self.x, old.x), min(self.y, old.y))
             comb.w = max(self.right, old.right) - comb.x
@@ -421,7 +412,7 @@ class StructuralComponent(Rect):
                 return [self._old_rect, self.copy_rect()]
         elif self._old_visible:
             return [self._old_rect]
-        elif self._is_visible:
+        elif self.is_visible:
             return [self.copy_rect()]
         return []
 
@@ -430,7 +421,7 @@ class StructuralComponent(Rect):
         self._display.fill(self.colorkey, rect.as_pygame_rect())
         self._display.blit(self._background, rect.pos, rect.as_pygame_rect())
         for child in children:
-            if child._is_visible:
+            if child.is_visible:
                 if child.is_transparent:
                     children.extend(child._children)
                 else:
@@ -441,12 +432,12 @@ class StructuralComponent(Rect):
                         self._display.blit(child._display, (child.x + area.x, child.y + area.y), area.as_pygame_rect())
 
     def _draw(self):
-        if self._is_visible:
+        if self.is_visible:
             for child in self._children:
                 if not child.is_transparent and child.is_dirty and not self.is_dirty:
                     for rect in child._transition_rects():
                         self._add_dirty_rect(rect)
-                if child._is_visible or child._old_visible:
+                if child.is_visible or child._old_visible:
                     child._draw()
             if not self.is_transparent:
                 if self.is_dirty:
@@ -458,7 +449,7 @@ class StructuralComponent(Rect):
         self.is_dirty = False
         self._dirty_rects = []
         self._old_rect = self.copy_rect()
-        self._old_visible = self._is_visible
+        self._old_visible = self.is_visible
         return changed
 
     def track_hook(self):
@@ -470,33 +461,33 @@ class StructuralComponent(Rect):
         pos = pygame.mouse.get_pos()
         if not self.is_root:
             pos = tuple(x1 - x2 for x1, x2 in zip(pos, self.parent.abs_rect().pos))
-        if self._is_hovered != self.collide_point(pos):
+        if self.is_hovered != self.collide_point(pos):
             rel = pygame.mouse.get_rel()
-            self._is_hovered = not self._is_hovered
-            if self._is_hovered:
+            self.is_hovered = not self.is_hovered
+            if self.is_hovered:
                 self._mouse_enter((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
             else:
                 self._mouse_exit((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
-        if self._is_hovered and not pygame.mouse.get_focused():
-            self._is_hovered = False
+        if self.is_hovered and not pygame.mouse.get_focused():
+            self.is_hovered = False
             self._mouse_exit(pos, pos, pygame.mouse.get_pressed())
         for child in self._children:
-            if not child._is_paused:
+            if not child.is_paused:
                 child._track()
 
-    def update_hook(self):
+    def tick_hook(self):
         pass
 
-    def _update(self):
+    def _tick(self):
         if not all(self._children[i].z <= self._children[i+1].z for i in range(len(self._children) - 1)):
             self._children.sort(key=lambda x: x.z)
             self.is_dirty = True
         for child in self._children:
-            if not child._is_paused:
-                child._update()
-        self.update_hook()
+            if not child.is_paused:
+                child._tick()
+        self.tick_hook()
 
-    def tick(self):
+    def step(self):
         self._track()
-        self._update()
+        self._tick()
         self._draw()

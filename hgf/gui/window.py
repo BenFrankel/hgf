@@ -27,7 +27,7 @@ class Window(StructuralComponent):
 
     def __init__(self, w, h, *args, **kwargs):
         super().__init__(w, h, **kwargs)
-        self.name = 'window'
+        self.type = 'window'
 
         self.args = args
         self.surf = None

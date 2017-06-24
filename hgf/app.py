@@ -189,10 +189,10 @@ class AppConfig:
                     result[context][key.lower()] = name
         return result
 
-    def style_get(self, query, name=None, context=None):
-        attempts = ('global', 'global'), (name, 'global'), ('global', context),\
-                   (name, context),\
-                   (name, 'default'), ('default', context), ('default', 'default')
+    def style_get(self, query, type_=None, context=None):
+        attempts = ('global', 'global'), (type_, 'global'), ('global', context), \
+                   (type_, context), \
+                   (type_, 'default'), ('default', context), ('default', 'default')
         for try_name, try_context in attempts:
             try:
                 return self.style[try_name][try_context][query]
@@ -203,7 +203,7 @@ class AppConfig:
                 return self.style_packs['default'][try_name][try_context][query]
             except KeyError:
                 pass
-        raise KeyError('Cannot find style \'{}\' for \'{}\' in context \'{}\''.format(query, name, context))
+        raise KeyError('Cannot find style \'{}\' for \'{}\' in context \'{}\''.format(query, type_, context))
 
     def options_get(self, query, name=None, context=None):
         attempts = ('global', 'global'), (name, 'global'), ('global', context),\
@@ -255,17 +255,17 @@ class App(Window):
             pass
 
     def key_down_hook(self, unicode, key, mod):
-        try:
+        if self.focus_stack:
             self.focus_stack[-1].key_down(unicode, key, mod)
-        except IndexError:
-            pass
+
+    def key_up_hook(self, key, mod):
+        if self.focus_stack:
+            self.focus_stack[-1].key_up(key, mod)
 
     def give_focus(self, component):
         component.is_focused = True
-        try:
+        if self.focus_stack:
             self.focus_stack[-1].is_focused = False
-        except IndexError:
-            pass
         try:
             self.focus_stack.remove(component)
         except ValueError:
