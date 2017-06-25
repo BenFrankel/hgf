@@ -20,7 +20,8 @@
 from .window import Window
 from .switch import Switch, Sequence, Hub
 from .text_entry import TextEntryBox, TextField
-from .menu import Widget, Button, Menu
+from .menu import Button, Menu
+from .widget import SimpleWidget, Widget
 from .text import Text, TextBox
 from .image import Image
 from .base import StructuralComponent
@@ -30,7 +31,8 @@ __all__ = [
     'Window',
     'Switch', 'Sequence', 'Hub',
     'TextEntryBox', 'TextField',
-    'Widget', 'Button', 'Menu',
+    'Button', 'Menu',
+    'SimpleWidget', 'Widget',
     'Text', 'TextBox',
     'Image',
     'StructuralComponent',

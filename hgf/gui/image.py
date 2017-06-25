@@ -25,8 +25,9 @@ class Image(StructuralComponent):
         super().__init__(0, 0, hover=False, click=False)
         self._image = None
         self.image_name = image_name
+        self.load_hook.append(self._load_image)
 
-    def load_hook(self):
+    def _load_image(self):
         self.image = self._app.get_image(self.image_name)
 
     @property

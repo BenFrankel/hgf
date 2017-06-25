@@ -24,7 +24,8 @@ from .gui import\
     Window,\
     Switch, Sequence, Hub,\
     TextEntryBox, TextField,\
-    Widget, Button, Menu,\
+    Button, Menu,\
+    SimpleWidget, Widget,\
     Text, TextBox,\
     Image,\
     StructuralComponent
@@ -40,7 +41,8 @@ __all__ = [
     'Window',
     'Switch', 'Sequence', 'Hub',
     'TextEntryBox', 'TextField',
-    'Widget', 'Button', 'Menu',
+    'Button', 'Menu',
+    'SimpleWidget', 'Widget',
     'Text', 'TextBox',
     'Image',
     'StructuralComponent',

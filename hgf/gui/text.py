@@ -29,7 +29,7 @@ class Text(StructuralComponent):
         self._font = font
         self.fgcolor = (0, 0, 0) if fgcolor is None else fgcolor
 
-    def load_style(self):
+    def load_style_hook(self):
         self._font = self.style_get('font')
 
     @property
@@ -94,7 +94,7 @@ class TextBox(StructuralComponent):
 
         self._bg_factory = None
 
-    def load_style(self):
+    def load_style_hook(self):
         self.font = self.style_get('font')
         self.font.size = self.options_get('font-size')
         self.line_height = self.font.get_sized_height()
@@ -202,6 +202,7 @@ class TextBox(StructuralComponent):
                 line.right = self.w - self.margin
             line.y = y
             y += self.line_height
+        super().tick_hook()
 
     def refresh(self):
         self.background = self._bg_factory(self.size, self.margin)

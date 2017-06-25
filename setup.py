@@ -54,7 +54,8 @@ setup(
 
         packages=find_packages(),
         install_requires=[
-            'pygame (>=1.9.1)'
+            'pygame (>=1.9.1)',
+            'pyperclip'
         ],
         provides=['hgf']
 )

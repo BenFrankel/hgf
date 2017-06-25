@@ -75,6 +75,46 @@ class StructuralComponent(Rect):
 
         self.is_loaded = False
 
+    def load_style_hook(self): pass
+
+    def load_options_hook(self): pass
+
+    def load_hook(self): pass
+
+    def show_hook(self): pass
+
+    def hide_hook(self): pass
+
+    def pause_hook(self): pass
+
+    def unpause_hook(self): pass
+
+    def activate_hook(self): pass
+
+    def deactivate_hook(self): pass
+
+    def take_focus_hook(self): pass
+
+    def lose_focus_hook(self): pass
+
+    def key_down_hook(self, unicode, key, mods): pass
+
+    def key_up_hook(self, key, mods): pass
+
+    def mouse_enter_hook(self, start, end, buttons): pass
+
+    def mouse_exit_hook(self, start, end, buttons): pass
+
+    def mouse_motion_hook(self, start, end, buttons): pass
+
+    def mouse_down_hook(self, pos, button): pass
+
+    def mouse_up_hook(self, pos, button): pass
+
+    def track_hook(self): pass
+
+    def tick_hook(self): pass
+
     @property
     def is_root(self):
         return self.parent is None
@@ -179,53 +219,38 @@ class StructuralComponent(Rect):
     def controls_get(self, query):
         return self._app._config.controls_get(query, self.context)
 
-    def load_style(self):
-        pass
-
     def _reload_style(self):
         for child in self._children:
             child._reload_style()
-        self.load_style()
+        self.load_style_hook()
         self.refresh()
-
-    def load_options(self):
-        pass
 
     def _reload_options(self):
         for child in self._children:
             child._reload_options()
-        self.load_options()
+        self.load_options_hook()
         self.refresh()
 
-    def load_hook(self):
-        pass
-
     def _load(self):
-        self.load_style()
-        self.load_options()
+        self.load_style_hook()
+        self.load_options_hook()
         self.load_hook()
         self.refresh()
         self.is_loaded = True
-
-    def show_hook(self):
-        pass
 
     def show(self):
         self.is_visible = True
         self.show_hook()
 
-    def hide_hook(self):
-        pass
-
-    def _parent_hiding(self):
+    def _lose_focus_because_of_hiding(self):
         if self.is_focused:
             self.lose_focus()
         for child in self._children:
-            child._parent_hiding()
+            child._lose_focus_because_of_hiding()
 
     def hide(self):
         self.is_visible = False
-        self._parent_hiding()
+        self._lose_focus_because_of_hiding()
         self.hide_hook()
 
     def toggle_show(self):
@@ -234,15 +259,9 @@ class StructuralComponent(Rect):
         else:
             self.show()
 
-    def pause_hook(self):
-        pass
-
     def pause(self):
         self.is_paused = True
         self.pause_hook()
-
-    def unpause_hook(self):
-        pass
 
     def unpause(self):
         self.is_paused = False
@@ -254,31 +273,19 @@ class StructuralComponent(Rect):
         else:
             self.pause()
 
-    def activate_hook(self):
-        pass
-
     def activate(self):
         self.show()
         self.unpause()
         self.activate_hook()
-
-    def deactivate_hook(self):
-        pass
 
     def deactivate(self):
         self.hide()
         self.pause()
         self.deactivate_hook()
 
-    def take_focus_hook(self):
-        pass
-
     def take_focus(self):
         self._app.give_focus(self)
         self.take_focus_hook()
-
-    def lose_focus_hook(self):
-        pass
 
     def lose_focus(self):
         self._app.remove_focus(self)
@@ -322,9 +329,6 @@ class StructuralComponent(Rect):
         for child in children:
             self.register_load(child)
 
-    def key_down_hook(self, unicode, key, mod):
-        pass
-
     def _key_down(self, unicode, key, mod):
         try:
             self.handle_message(self, self.controls_get(keys.from_pygame_key(key, mod)))
@@ -332,14 +336,8 @@ class StructuralComponent(Rect):
             pass
         self.key_down_hook(unicode, key, mod)
 
-    def key_up_hook(self, key, mod):
-        pass
-
     def _key_up(self, key, mod):
         self.key_up_hook(key, mod)
-
-    def mouse_enter_hook(self, start, end, buttons):
-        pass
 
     def _mouse_enter(self, start, end, buttons):
         self.mouse_enter_hook(start, end, buttons)
@@ -349,9 +347,6 @@ class StructuralComponent(Rect):
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child._mouse_enter(rel_start, rel_end, buttons)
 
-    def mouse_exit_hook(self, start, end, buttons):
-        pass
-
     def _mouse_exit(self, start, end, buttons):
         self.mouse_exit_hook(start, end, buttons)
         for child in self._children:
@@ -359,9 +354,6 @@ class StructuralComponent(Rect):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child._mouse_exit(rel_start, rel_end, buttons)
-
-    def mouse_motion_hook(self, start, end, buttons):
-        pass
 
     def _mouse_motion(self, start, end, buttons):
         self.mouse_motion_hook(start, end, buttons)
@@ -371,9 +363,6 @@ class StructuralComponent(Rect):
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child._mouse_motion(rel_start, rel_end, buttons)
 
-    def mouse_down_hook(self, pos, button):
-        pass
-
     def _mouse_down(self, pos, button):
         self.mouse_down_hook(pos, button)
         if self.can_focus and not self.is_focused:
@@ -382,9 +371,6 @@ class StructuralComponent(Rect):
             if child.can_click and not child.is_paused and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
                 child._mouse_down(rel_pos, button)
-
-    def mouse_up_hook(self, pos, button):
-        pass
 
     def _mouse_up(self, pos, button):
         self.mouse_up_hook(pos, button)
@@ -472,9 +458,6 @@ class StructuralComponent(Rect):
         self._old_visible = self.is_visible
         return changed
 
-    def track_hook(self):
-        pass
-
     # Catch quick mouse events
     def _track(self):
         self.track_hook()
@@ -494,9 +477,6 @@ class StructuralComponent(Rect):
         for child in self._children:
             if not child.is_paused:
                 child._track()
-
-    def tick_hook(self):
-        pass
 
     def _tick(self):
         if not all(self._children[i].z <= self._children[i+1].z for i in range(len(self._children) - 1)):

@@ -1,0 +1,33 @@
+#+TITLE: hgf Roadmap
+#+AUTHOR: Ben Frankel
+#+EMAIL: ben.frankel7@gmail.com
+#+STARTUP: showall
+
+
+* Version 0.2.0
+
+** New Components [3/7]
+
+- [X] TextBox
+- [X] TextEntryBox
+- [X] TextField
+- [ ] Widget (old Widget renamed to SimpleWidget)
+- [ ] Scrollbar
+- [ ] Frame
+- [ ] TextFrame
+
+** Refactoring [2/2]
+
+- [X] Hook functions
+- [X] Widget renamed to SimpleWidget
+
+** Restructuring [1/1]
+
+- [X] Explicit load step
+
+** Convenience [3/4]
+
+- [X] Activate / deactivate
+- [X] Toggle show / pause
+- [X] Simultaneously register and load (~register_load~ and ~register_load_all~)
+- [ ] Default config files for built-in configurables

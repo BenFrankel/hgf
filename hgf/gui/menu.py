@@ -17,78 +17,13 @@
 ###############################################################################
 
 
+from .widget import SimpleWidget
 from .text import Text
 from .base import StructuralComponent
 from ..util import Rect
 
-import pygame
 
-
-class Widget(StructuralComponent):
-    IDLE = 0
-    HOVER = 1
-    PUSH = 2
-    PRESS = 3
-    PULL = 4
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self._widget_state = Widget.IDLE
-
-    @property
-    def widget_state(self):
-        return self._widget_state
-
-    @widget_state.setter
-    def widget_state(self, other):
-        if self._widget_state != other:
-            before = self._widget_state
-            self._widget_state = other
-            self.widget_state_change_hook(before, other)
-            self.refresh()
-
-    def widget_state_change_hook(self, before, after):
-        pass
-
-    def pause_hook(self):
-        self.widget_state = Widget.IDLE
-
-    def mouse_enter_hook(self, start, end, buttons):
-        if self.is_visible:
-            if self.widget_state == Widget.IDLE:
-                if buttons[0]:
-                    self.widget_state = Widget.PUSH
-                else:
-                    self.widget_state = Widget.HOVER
-            elif self.widget_state == Widget.PULL:
-                self.widget_state = Widget.PRESS
-
-    def mouse_exit_hook(self, start, end, buttons):
-        if self.is_visible:
-            if self.widget_state == Widget.HOVER or self.widget_state == Widget.PUSH:
-                self.widget_state = Widget.IDLE
-            elif self.widget_state == Widget.PRESS:
-                self.widget_state = Widget.PULL
-
-    def mouse_down_hook(self, pos, button):
-        if button == 1 and self.is_visible:
-            if self.widget_state != Widget.HOVER:
-                self.widget_state = Widget.HOVER
-            self.widget_state = Widget.PRESS
-
-    def mouse_up_hook(self, pos, button):
-        if button == 1 and self.is_visible:
-            if self.widget_state == Widget.PRESS or self.widget_state == Widget.PUSH:
-                self.widget_state = Widget.HOVER
-            elif self.widget_state == Widget.PULL:
-                self.widget_state = Widget.IDLE
-
-    def track_hook(self):
-        if self.is_visible and self.widget_state == Widget.PULL and not pygame.mouse.get_pressed()[0]:
-            self.widget_state = Widget.IDLE
-
-
-class Button(Widget):
+class Button(SimpleWidget):
     def __init__(self, label_name, message, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.type = 'button'
@@ -105,7 +40,7 @@ class Button(Widget):
         self.label.center = self.rel_rect().center
         self.register_load(self.label)
 
-    def load_style(self):
+    def load_style_hook(self):
         self._bg_factory = self.style_get('background')
 
     @property
@@ -118,20 +53,21 @@ class Button(Widget):
             self._label_name = other
             self.label.text = other
 
-    def widget_state_change_hook(self, before, after):
-        if before == Widget.PRESS and after == Widget.HOVER:
+    def mouse_state_change_hook(self, before, after):
+        if before == SimpleWidget.PRESS and after == SimpleWidget.HOVER:
             self.send_message(self.message)
 
     def tick_hook(self):
         self.label.center = self.rel_rect().center
-        if self.widget_state == Widget.PRESS:
+        if self.mouse_state == SimpleWidget.PRESS:
             self.label.x -= 1
             self.label.y += 1
 
     def refresh(self):
-        self.background = self._bg_factory(self.size, self.widget_state)
+        self.background = self._bg_factory(self.size, self.mouse_state)
 
 
+# TODO: self.justify = 'left' or 'center' or 'right', default to 'center'
 class Menu(StructuralComponent):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

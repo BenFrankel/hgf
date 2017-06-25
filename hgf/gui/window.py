@@ -34,10 +34,10 @@ class Window(StructuralComponent):
 
         self.bg_color = None
 
-    def load_style(self):
+    def load_style_hook(self):
         self.bg_color = self.style_get('bg-color')
 
-    def load_options(self):
+    def load_options_hook(self):
         pygame.display.set_caption(self.options_get('title'))
 
     def open(self):

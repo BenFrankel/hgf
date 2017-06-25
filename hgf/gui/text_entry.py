@@ -1,9 +1,10 @@
-from .menu import Widget
+from .widget import SimpleWidget, Widget
 from .text import TextBox
 from .base import StructuralComponent
-from ..util import Time, Timer, CountdownTimer
+from ..util import Time, CountdownTimer
 
 import pygame
+import pyperclip
 
 import functools
 
@@ -163,11 +164,9 @@ class CursorPlacement:
     __str__ = __repr__
 
 
-# TODO: Copy & Paste
+# TODO: Undo
+# TODO: Double click to highlight word, triple to highlight line
 class TextEntryBox(TextBox, Widget):
-    LONG_PRESS_DELAY = Time(ms=400)
-    LONG_PRESS_RATE = Time(ms=40)
-
     NAVIGATE_KEYS = [
         pygame.K_LEFT,
         pygame.K_RIGHT,
@@ -182,6 +181,12 @@ class TextEntryBox(TextBox, Widget):
         pygame.K_DELETE,
     ]
 
+    MSG_UNDO = 'text-undo'
+    MSG_HIGHLIGHT_ALL = 'text-highlight-all'
+    MSG_CUT = 'text-cut'
+    MSG_COPY = 'text-copy'
+    MSG_PASTE = 'text-paste'
+
     def __init__(self, w, h, **kwargs):
         super().__init__(w, h, focus=True, **kwargs)
         # Cursor
@@ -190,14 +195,9 @@ class TextEntryBox(TextBox, Widget):
         self._cursor_bg_factory = None
 
         # Highlighting
-        self.hl_cursor_place = None
+        self._hl_cursor_place = None
         self.highlight = None
         self._highlight_bgcolor = None
-
-        # Long press
-        self._long_press_delay = Timer()
-        self._long_press_rate = CountdownTimer()
-        self._last_pressed = None
 
     def load_hook(self):
         self.cursor = Cursor(max(self.line_height // 10, 1), self.line_height)
@@ -213,8 +213,8 @@ class TextEntryBox(TextBox, Widget):
         self.highlight.deactivate()
         self.register_load(self.highlight)
 
-    def load_style(self):
-        super().load_style()
+    def load_style_hook(self):
+        super().load_style_hook()
         self._cursor_bg_factory = self.style_get('cursor-bg')
         self._highlight_bgcolor = self.style_get('highlight-bg-color')
 
@@ -227,40 +227,82 @@ class TextEntryBox(TextBox, Widget):
 
     def mouse_down_hook(self, pos, button):
         super().mouse_down_hook(pos, button)
-
         if not pygame.key.get_mods() & pygame.KMOD_SHIFT:
-            self.hl_cursor_place = None
-        elif self.hl_cursor_place is None:
-            self.hl_cursor_place = self._cursor_place.copy()
+            self._hl_cursor_place = None
+        elif self._hl_cursor_place is None:
+            self._hl_cursor_place = self._cursor_place.copy()
 
         self._place_cursor_by_pos(self._cursor_place, pos)
 
         # Shift-clicked where the cursor already is
-        if self.hl_cursor_place is not None and self.hl_cursor_place == self._cursor_place:
-            self.hl_cursor_place = None
-
+        if self._hl_cursor_place is not None and self._hl_cursor_place == self._cursor_place:
+            self._hl_cursor_place = None
         self.cursor.restart()
 
     def mouse_motion_hook(self, start, end, buttons):
-        if self.widget_state == Widget.PRESS:
+        super().mouse_motion_hook(start, end, buttons)
+        if self.mouse_state == SimpleWidget.PRESS:
             started_highlighting = False
-            if self.hl_cursor_place is None:
+            if self._hl_cursor_place is None:
                 started_highlighting = True
-                self.hl_cursor_place = self._cursor_place.copy()
+                self._hl_cursor_place = self._cursor_place.copy()
             self._place_cursor_by_pos(self._cursor_place, end)
-            if started_highlighting and self.hl_cursor_place == self._cursor_place:
-                self.hl_cursor_place = None
+            if started_highlighting and self._hl_cursor_place == self._cursor_place:
+                self._hl_cursor_place = None
             self.cursor.restart()
 
+    def _handle_key(self, unicode, key, mod):
+        prev_index = self._cursor_place.index
+        if key in TextEntryBox.NAVIGATE_KEYS:
+            if self._hl_cursor_place is not None and not mod & pygame.KMOD_SHIFT:
+                self._navigate_region(key, mod)
+                self._hl_cursor_place = None
+            else:
+                self._navigate(key, mod)
+            if not mod & pygame.KMOD_SHIFT:
+                self._hl_cursor_place = None
+
+            elif self._hl_cursor_place is None:
+                self._hl_cursor_place = CursorPlacement()
+                self._place_cursor_by_index(self._hl_cursor_place, prev_index)
+            elif self._hl_cursor_place.index == self._cursor_place.index:
+                self._hl_cursor_place = None
+        elif key in TextEntryBox.EDIT_KEYS or (unicode and (unicode.isprintable() or unicode.isspace())):
+            if self._hl_cursor_place is None:
+                index, text = _edit(self.text, self._cursor_place.index, unicode, key, mod)
+            else:
+                start = min(self._hl_cursor_place.index, self._cursor_place.index)
+                end = max(self._hl_cursor_place.index, self._cursor_place.index)
+                index, text = _edit_region(self.text, start, end, unicode, key, mod)
+                self._hl_cursor_place = None
+            if self.set_text(text):
+                if index != self._cursor_place.index:
+                    self._place_cursor_by_index(self._cursor_place, index)
+
     def key_down_hook(self, unicode, key, mod):
-        self._handle_key_down(unicode, key, mod)
+        super().key_down_hook(unicode, key, mod)
+        self._handle_key(unicode, key, mod)
 
-        self._long_press_delay.start()
-        self._last_pressed = (unicode, key, mod)
-
-    def key_up_hook(self, key, mod):
-        self._long_press_delay.reset()
-        self._last_pressed = None
+    def handle_message(self, sender, message, **params):
+        if message == TextEntryBox.MSG_UNDO:
+            pass
+        elif message == TextEntryBox.MSG_CUT:
+            self.handle_message(sender, TextEntryBox.MSG_COPY, **params)
+            self._handle_key(None, pygame.K_DELETE, 0)
+        elif message == TextEntryBox.MSG_COPY:
+            if self._hl_cursor_place is not None:
+                left, right = self._hl_cursor_place, self._cursor_place
+                if left > right:
+                    left, right = right, left
+                pyperclip.copy(self.text[left.index:right.index])
+        elif message == TextEntryBox.MSG_PASTE:
+            self._handle_key(pyperclip.paste(), None, 0)
+        elif message == TextEntryBox.MSG_HIGHLIGHT_ALL:
+            self._hl_cursor_place = CursorPlacement()
+            self._place_cursor_by_index(self._hl_cursor_place, 0)
+            self._place_cursor_by_index(self._cursor_place, len(self.text))
+        else:
+            self.send_message(message, **params)
 
     def _navigate(self, key, mod):
         cursor = self._cursor_place
@@ -305,9 +347,9 @@ class TextEntryBox(TextBox, Widget):
                 self._place_cursor_by_pos(cursor, (cursor.raw_x, cursor.raw_y - self.line_height))
 
         elif key == pygame.K_LEFT:
-            self._place_cursor_by_index(cursor, min(cursor.index, self.hl_cursor_place.index))
+            self._place_cursor_by_index(cursor, min(cursor.index, self._hl_cursor_place.index))
         elif key == pygame.K_RIGHT:
-            self._place_cursor_by_index(cursor, max(cursor.index, self.hl_cursor_place.index))
+            self._place_cursor_by_index(cursor, max(cursor.index, self._hl_cursor_place.index))
 
         elif key == pygame.K_HOME:
             if mod & pygame.KMOD_CTRL:
@@ -319,34 +361,6 @@ class TextEntryBox(TextBox, Widget):
                 self._place_cursor_by_index(cursor, len(self.text))
             else:
                 self._place_cursor_by_index(cursor, cursor.index + len(self.lines[cursor.row].text) - cursor.col)
-
-    def _handle_key_down(self, unicode, key, mod):
-        prev_index = self._cursor_place.index
-        if key in TextEntryBox.NAVIGATE_KEYS:
-            if self.hl_cursor_place is not None and not mod & pygame.KMOD_SHIFT:
-                self._navigate_region(key, mod)
-                self.hl_cursor_place = None
-            else:
-                self._navigate(key, mod)
-            if not mod & pygame.KMOD_SHIFT:
-                self.hl_cursor_place = None
-
-            elif self.hl_cursor_place is None:
-                self.hl_cursor_place = CursorPlacement()
-                self._place_cursor_by_index(self.hl_cursor_place, prev_index)
-            elif self.hl_cursor_place.index == self._cursor_place.index:
-                self.hl_cursor_place = None
-        elif key in TextEntryBox.EDIT_KEYS or (unicode and (unicode.isprintable() or unicode.isspace())):
-            if self.hl_cursor_place is None:
-                index, text = _edit(self.text, self._cursor_place.index, unicode, key, mod)
-            else:
-                start = min(self.hl_cursor_place.index, self._cursor_place.index)
-                end = max(self.hl_cursor_place.index, self._cursor_place.index)
-                index, text = _edit_region(self.text, start, end, unicode, key, mod)
-                self.hl_cursor_place = None
-            if self.set_text(text):
-                if index != self._cursor_place.index:
-                    self._place_cursor_by_index(self._cursor_place, index)
 
         self.cursor.restart()
 
@@ -392,18 +406,15 @@ class TextEntryBox(TextBox, Widget):
         cursor.raw_x, cursor.raw_y = cursor.x, cursor.y = self._grid_pos(cursor.row, cursor.col)
 
     def tick_hook(self):
+        super().tick_hook()
         if self.is_focused:
-            if self._long_press_delay.time > TextEntryBox.LONG_PRESS_DELAY:
-                if not self._long_press_rate.is_running:
-                    self._long_press_rate.start(TextEntryBox.LONG_PRESS_RATE)
-                    self._handle_key_down(*self._last_pressed)
-            if self.hl_cursor_place is not None:
+            if self._hl_cursor_place is not None:
                 if not self.highlight.is_visible:
                     self.highlight.activate()
                     self.cursor.deactivate()
-                left, right = self._cursor_place, self.hl_cursor_place
-                if self.hl_cursor_place < self._cursor_place:
-                    left, right = self.hl_cursor_place, self._cursor_place
+                left, right = self._hl_cursor_place, self._cursor_place
+                if left > right:
+                    left, right = right, left
                 if self.highlight.start != (left.x, left.y) or self.highlight.end != (right.x, right.y):
                     self.highlight.start = left.x - self.margin, left.y - self.margin
                     self.highlight.end = right.x - self.margin, right.y - self.margin
@@ -415,15 +426,14 @@ class TextEntryBox(TextBox, Widget):
                 self.highlight.deactivate()
                 self.cursor.activate()
             self.cursor.pos = self._cursor_place.x - self.cursor.w // 2, self._cursor_place.y
-        super().tick_hook()
 
 
 class TextField(TextEntryBox):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-    def _handle_key_down(self, unicode, key, mod):
+    def key_down_hook(self, unicode, key, mod):
         if key == pygame.K_RETURN and not mod & pygame.KMOD_SHIFT:
             self.send_message('text-entry', text=self.text)
         else:
-            super()._handle_key_down(unicode, key, mod)
+            super().key_down_hook(unicode, key, mod)
