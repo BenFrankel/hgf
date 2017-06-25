@@ -98,11 +98,15 @@ class Button(Widget):
 
         self.label = None
 
+        self._bg_factory = None
+
     def load_hook(self):
         self.label = Text(self._label_name, fontsize=max(self.h // 3, 14), fgcolor=(255, 255, 255))
         self.label.center = self.rel_rect().center
-        self.register(self.label)
-        self.label.load()
+        self.register_load(self.label)
+
+    def load_style(self):
+        self._bg_factory = self.style_get('background')
 
     @property
     def label_name(self):
@@ -125,7 +129,7 @@ class Button(Widget):
             self.label.y += 1
 
     def refresh(self):
-        self.background = self.style_get('background')(self.size, self.widget_state)
+        self.background = self._bg_factory(self.size, self.widget_state)
 
 
 class Menu(StructuralComponent):
@@ -146,8 +150,7 @@ class Menu(StructuralComponent):
     def load_hook(self):
         for button_info in self._button_info:
             self.buttons.append(Button(*button_info, self.button_w, self.button_h))
-            self.register(self.buttons[-1])
-            self.buttons[-1].load()
+            self.register_load(self.buttons[-1])
         del self._button_info
 
     def tick_hook(self):

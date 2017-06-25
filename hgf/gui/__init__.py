@@ -19,19 +19,19 @@
 
 from .window import Window
 from .switch import Switch, Sequence, Hub
-from .text_entry import TextBox, TextEntryBox
+from .text_entry import TextEntryBox, TextField
 from .menu import Widget, Button, Menu
+from .text import Text, TextBox
 from .image import Image
-from .text import Text
 from .base import StructuralComponent
 
 
 __all__ = [
     'Window',
     'Switch', 'Sequence', 'Hub',
-    'TextBox', 'TextEntryBox',
+    'TextEntryBox', 'TextField',
     'Widget', 'Button', 'Menu',
+    'Text', 'TextBox',
     'Image',
-    'Text',
     'StructuralComponent',
 ]

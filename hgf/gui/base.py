@@ -153,22 +153,6 @@ class StructuralComponent(Rect):
         self.size = other.get_size()
         self.is_dirty = True
 
-    def load_hook(self):
-        pass
-
-    def load(self):
-        self.load_hook()
-        self.is_loaded = True
-        self.refresh()
-
-    def refresh(self):
-        pass
-
-    def resize(self, size):
-        if self.size != size:
-            self.size = size
-            self.refresh()
-
     def copy_rect(self):
         return Rect(self.x, self.y, self.w, self.h)
 
@@ -181,6 +165,48 @@ class StructuralComponent(Rect):
         abs_pos = self.parent.abs_rect().pos
         return Rect(abs_pos[0] - self.pos[0], abs_pos[1] - self.pos[1], self.w, self.h)
 
+    def resize(self, size):
+        if self.size != size:
+            self.size = size
+            self.refresh()
+
+    def style_get(self, query):
+        return self._app._config.style_get(query, self.type, self.context)
+
+    def options_get(self, query):
+        return self._app._config.options_get(query, self.type, self.context)
+
+    def controls_get(self, query):
+        return self._app._config.controls_get(query, self.context)
+
+    def load_style(self):
+        pass
+
+    def _reload_style(self):
+        for child in self._children:
+            child._reload_style()
+        self.load_style()
+        self.refresh()
+
+    def load_options(self):
+        pass
+
+    def _reload_options(self):
+        for child in self._children:
+            child._reload_options()
+        self.load_options()
+        self.refresh()
+
+    def load_hook(self):
+        pass
+
+    def _load(self):
+        self.load_style()
+        self.load_options()
+        self.load_hook()
+        self.refresh()
+        self.is_loaded = True
+
     def show_hook(self):
         pass
 
@@ -188,14 +214,14 @@ class StructuralComponent(Rect):
         self.is_visible = True
         self.show_hook()
 
+    def hide_hook(self):
+        pass
+
     def _parent_hiding(self):
         if self.is_focused:
             self.lose_focus()
         for child in self._children:
             child._parent_hiding()
-
-    def hide_hook(self):
-        pass
 
     def hide(self):
         self.is_visible = False
@@ -258,15 +284,6 @@ class StructuralComponent(Rect):
         self._app.remove_focus(self)
         self.lose_focus_hook()
 
-    def style_get(self, query):
-        return self._app.config.style_get(query, self.type, self.context)
-
-    def options_get(self, query):
-        return self._app.config.options_get(query, self.type, self.context)
-
-    def controls_get(self, query):
-        return self._app.config.controls_get(query, self.context)
-
     def register(self, child):
         if not child.is_root:
             child.parent.unregister(child)
@@ -299,7 +316,7 @@ class StructuralComponent(Rect):
 
     def register_load(self, child):
         self.register(child)
-        child.load()
+        child._load()
 
     def register_load_all(self, children):
         for child in children:
@@ -308,7 +325,7 @@ class StructuralComponent(Rect):
     def key_down_hook(self, unicode, key, mod):
         pass
 
-    def key_down(self, unicode, key, mod):
+    def _key_down(self, unicode, key, mod):
         try:
             self.handle_message(self, self.controls_get(keys.from_pygame_key(key, mod)))
         except KeyError:
@@ -318,7 +335,7 @@ class StructuralComponent(Rect):
     def key_up_hook(self, key, mod):
         pass
 
-    def key_up(self, key, mod):
+    def _key_up(self, key, mod):
         self.key_up_hook(key, mod)
 
     def mouse_enter_hook(self, start, end, buttons):
@@ -382,6 +399,9 @@ class StructuralComponent(Rect):
     def send_message(self, message, **params):
         if not self.is_root:
             self.parent.handle_message(self, message, **params)
+
+    def refresh(self):
+        pass
 
     def _add_dirty_rect(self, rect):
         if not self.is_dirty and rect not in self._dirty_rects:

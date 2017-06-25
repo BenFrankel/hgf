@@ -8,7 +8,7 @@ import pygame
 import functools
 
 
-def backwards_word(s, index):
+def _backwards_word(s, index):
     start = index - 1
     while start >= 0 and not s[start].isalnum():
         start -= 1
@@ -17,7 +17,7 @@ def backwards_word(s, index):
     return start + 1
 
 
-def forwards_word(s, index):
+def _forwards_word(s, index):
     end = index
     while end < len(s) and not s[end].isalnum():
         end += 1
@@ -26,19 +26,19 @@ def forwards_word(s, index):
     return end
 
 
-def edit(text, index, unicode, key, mod):
+def _edit(text, index, unicode, key, mod):
     if key == pygame.K_BACKSPACE:
         if index == 0:
             return index, text
         if mod & pygame.KMOD_CTRL:
-            start = backwards_word(text, index)
+            start = _backwards_word(text, index)
             return start, text[:start] + text[index:]
         return index - 1, text[:index - 1] + text[index:]
     if key == pygame.K_DELETE:
         if index == len(text):
             return index, text
         if mod & pygame.KMOD_CTRL:
-            end = forwards_word(text, index)
+            end = _forwards_word(text, index)
             return index, text[:index] + text[end:]
         return index, text[:index] + text[index + 1:]
 
@@ -47,7 +47,7 @@ def edit(text, index, unicode, key, mod):
     return index + len(unicode), text[:index] + unicode + text[index:]
 
 
-def edit_region(text, start, end, unicode, key, mod):
+def _edit_region(text, start, end, unicode, key, mod):
     if key == pygame.K_BACKSPACE or key == pygame.K_DELETE:
         return start, text[:start] + text[end:]
 
@@ -62,8 +62,8 @@ class Cursor(StructuralComponent):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.type = 'cursor'
         self.timer = CountdownTimer()
+        self._bg_factory = None
 
     def pause_hook(self):
         self.timer.pause()
@@ -85,7 +85,7 @@ class Cursor(StructuralComponent):
             self.timer.start(Cursor.BLINK_RATE)
 
     def refresh(self):
-        self.background = self.style_get('background')(self.size)
+        self.background = self._bg_factory(self.size)
 
 
 class Highlight(StructuralComponent):
@@ -186,34 +186,41 @@ class TextEntryBox(TextBox, Widget):
         super().__init__(w, h, focus=True, **kwargs)
         # Cursor
         self.cursor = None
-        self.cursor_place = CursorPlacement()
+        self._cursor_place = CursorPlacement()
+        self._cursor_bg_factory = None
 
         # Highlighting
         self.hl_cursor_place = None
         self.highlight = None
+        self._highlight_bgcolor = None
 
         # Long press
-        self.long_press_delay = Timer()
-        self.long_press_rate = CountdownTimer()
-        self.last_pressed = None
+        self._long_press_delay = Timer()
+        self._long_press_rate = CountdownTimer()
+        self._last_pressed = None
 
     def load_hook(self):
-        super().load_hook()
         self.cursor = Cursor(max(self.line_height // 10, 1), self.line_height)
+        self.cursor._bg_factory = self._cursor_bg_factory
         self.cursor.z = 10
-        self.register_load(self.cursor)
         self.cursor.deactivate()
+        self.register_load(self.cursor)
 
-        self.highlight = Highlight(self.line_height, self.w - 2 * self.gap, self.h - 2 * self.gap)
+        self.highlight = Highlight(self.line_height, self.w - 2 * self.margin, self.h - 2 * self.margin)
+        self.highlight.bgcolor = self._highlight_bgcolor
         self.highlight.z = -10
-        self.highlight.pos = self.gap, self.gap
-        self.highlight.bgcolor = self.style_get('highlight-bgcolor')
-        self.register_load(self.highlight)
+        self.highlight.pos = self.margin, self.margin
         self.highlight.deactivate()
+        self.register_load(self.highlight)
+
+    def load_style(self):
+        super().load_style()
+        self._cursor_bg_factory = self.style_get('cursor-bg')
+        self._highlight_bgcolor = self.style_get('highlight-bg-color')
 
     def take_focus_hook(self):
         self.cursor.activate()
-        self._place_cursor_by_index(self.cursor_place, self.cursor_place.index)
+        self._place_cursor_by_index(self._cursor_place, self._cursor_place.index)
 
     def lose_focus_hook(self):
         self.cursor.deactivate()
@@ -224,12 +231,12 @@ class TextEntryBox(TextBox, Widget):
         if not pygame.key.get_mods() & pygame.KMOD_SHIFT:
             self.hl_cursor_place = None
         elif self.hl_cursor_place is None:
-            self.hl_cursor_place = self.cursor_place.copy()
+            self.hl_cursor_place = self._cursor_place.copy()
 
-        self._place_cursor_by_pos(self.cursor_place, pos)
+        self._place_cursor_by_pos(self._cursor_place, pos)
 
         # Shift-clicked where the cursor already is
-        if self.hl_cursor_place is not None and self.hl_cursor_place == self.cursor_place:
+        if self.hl_cursor_place is not None and self.hl_cursor_place == self._cursor_place:
             self.hl_cursor_place = None
 
         self.cursor.restart()
@@ -239,24 +246,24 @@ class TextEntryBox(TextBox, Widget):
             started_highlighting = False
             if self.hl_cursor_place is None:
                 started_highlighting = True
-                self.hl_cursor_place = self.cursor_place.copy()
-            self._place_cursor_by_pos(self.cursor_place, end)
-            if started_highlighting and self.hl_cursor_place == self.cursor_place:
+                self.hl_cursor_place = self._cursor_place.copy()
+            self._place_cursor_by_pos(self._cursor_place, end)
+            if started_highlighting and self.hl_cursor_place == self._cursor_place:
                 self.hl_cursor_place = None
             self.cursor.restart()
 
     def key_down_hook(self, unicode, key, mod):
         self._handle_key_down(unicode, key, mod)
 
-        self.long_press_delay.start()
-        self.last_pressed = (unicode, key, mod)
+        self._long_press_delay.start()
+        self._last_pressed = (unicode, key, mod)
 
     def key_up_hook(self, key, mod):
-        self.long_press_delay.reset()
-        self.last_pressed = None
+        self._long_press_delay.reset()
+        self._last_pressed = None
 
     def _navigate(self, key, mod):
-        cursor = self.cursor_place
+        cursor = self._cursor_place
 
         if key == pygame.K_DOWN:
             if cursor.row < len(self.lines) - 1:
@@ -267,12 +274,12 @@ class TextEntryBox(TextBox, Widget):
 
         elif key == pygame.K_LEFT:
             if mod & pygame.KMOD_CTRL:
-                self._place_cursor_by_index(cursor, backwards_word(self.text, cursor.index))
+                self._place_cursor_by_index(cursor, _backwards_word(self.text, cursor.index))
             elif cursor.index > 0:
                 self._place_cursor_by_index(cursor, cursor.index - 1)
         elif key == pygame.K_RIGHT:
             if mod & pygame.KMOD_CTRL:
-                self._place_cursor_by_index(cursor, forwards_word(self.text, cursor.index))
+                self._place_cursor_by_index(cursor, _forwards_word(self.text, cursor.index))
             elif cursor.index < len(self.text):
                 self._place_cursor_by_index(cursor, cursor.index + 1)
 
@@ -288,7 +295,7 @@ class TextEntryBox(TextBox, Widget):
                 self._place_cursor_by_index(cursor, cursor.index + len(self.lines[cursor.row].text) - cursor.col)
 
     def _navigate_region(self, key, mod):
-        cursor = self.cursor_place
+        cursor = self._cursor_place
 
         if key == pygame.K_DOWN:
             if cursor.row < len(self.lines) - 1:
@@ -314,7 +321,7 @@ class TextEntryBox(TextBox, Widget):
                 self._place_cursor_by_index(cursor, cursor.index + len(self.lines[cursor.row].text) - cursor.col)
 
     def _handle_key_down(self, unicode, key, mod):
-        prev_index = self.cursor_place.index
+        prev_index = self._cursor_place.index
         if key in TextEntryBox.NAVIGATE_KEYS:
             if self.hl_cursor_place is not None and not mod & pygame.KMOD_SHIFT:
                 self._navigate_region(key, mod)
@@ -327,19 +334,19 @@ class TextEntryBox(TextBox, Widget):
             elif self.hl_cursor_place is None:
                 self.hl_cursor_place = CursorPlacement()
                 self._place_cursor_by_index(self.hl_cursor_place, prev_index)
-            elif self.hl_cursor_place.index == self.cursor_place.index:
+            elif self.hl_cursor_place.index == self._cursor_place.index:
                 self.hl_cursor_place = None
         elif key in TextEntryBox.EDIT_KEYS or (unicode and (unicode.isprintable() or unicode.isspace())):
             if self.hl_cursor_place is None:
-                index, text = edit(self.text, self.cursor_place.index, unicode, key, mod)
+                index, text = _edit(self.text, self._cursor_place.index, unicode, key, mod)
             else:
-                start = min(self.hl_cursor_place.index, self.cursor_place.index)
-                end = max(self.hl_cursor_place.index, self.cursor_place.index)
-                index, text = edit_region(self.text, start, end, unicode, key, mod)
+                start = min(self.hl_cursor_place.index, self._cursor_place.index)
+                end = max(self.hl_cursor_place.index, self._cursor_place.index)
+                index, text = _edit_region(self.text, start, end, unicode, key, mod)
                 self.hl_cursor_place = None
             if self.set_text(text):
-                if index != self.cursor_place.index:
-                    self._place_cursor_by_index(self.cursor_place, index)
+                if index != self._cursor_place.index:
+                    self._place_cursor_by_index(self._cursor_place, index)
 
         self.cursor.restart()
 
@@ -348,7 +355,7 @@ class TextEntryBox(TextBox, Widget):
         cursor.raw_x, cursor.raw_y = pos
 
         # Set row to `rel_y // line_height`, bounded between `0` and `len(lines) - 1`
-        cursor.row = min(max((cursor.raw_y - self.gap) // self.line_height, 0), len(self.lines) - 1)
+        cursor.row = min(max((cursor.raw_y - self.margin) // self.line_height, 0), len(self.lines) - 1)
 
         # Binary search to find which column was clicked on
         col = 0
@@ -386,26 +393,37 @@ class TextEntryBox(TextBox, Widget):
 
     def tick_hook(self):
         if self.is_focused:
-            if self.long_press_delay.time > TextEntryBox.LONG_PRESS_DELAY:
-                if not self.long_press_rate.is_running:
-                    self.long_press_rate.start(TextEntryBox.LONG_PRESS_RATE)
-                    self._handle_key_down(*self.last_pressed)
+            if self._long_press_delay.time > TextEntryBox.LONG_PRESS_DELAY:
+                if not self._long_press_rate.is_running:
+                    self._long_press_rate.start(TextEntryBox.LONG_PRESS_RATE)
+                    self._handle_key_down(*self._last_pressed)
             if self.hl_cursor_place is not None:
                 if not self.highlight.is_visible:
                     self.highlight.activate()
                     self.cursor.deactivate()
-                left, right = self.cursor_place, self.hl_cursor_place
-                if self.hl_cursor_place < self.cursor_place:
-                    left, right = self.hl_cursor_place, self.cursor_place
+                left, right = self._cursor_place, self.hl_cursor_place
+                if self.hl_cursor_place < self._cursor_place:
+                    left, right = self.hl_cursor_place, self._cursor_place
                 if self.highlight.start != (left.x, left.y) or self.highlight.end != (right.x, right.y):
-                    self.highlight.start = left.x - self.gap, left.y - self.gap
-                    self.highlight.end = right.x - self.gap, right.y - self.gap
+                    self.highlight.start = left.x - self.margin, left.y - self.margin
+                    self.highlight.end = right.x - self.margin, right.y - self.margin
                     self.highlight.refresh()
                 else:
-                    self.highlight.start = left.x - self.gap, left.y - self.gap
-                    self.highlight.end = right.x - self.gap, right.y - self.gap
+                    self.highlight.start = left.x - self.margin, left.y - self.margin
+                    self.highlight.end = right.x - self.margin, right.y - self.margin
             elif self.highlight.is_visible:
                 self.highlight.deactivate()
                 self.cursor.activate()
-            self.cursor.pos = self.cursor_place.x - self.cursor.w // 2, self.cursor_place.y
+            self.cursor.pos = self._cursor_place.x - self.cursor.w // 2, self._cursor_place.y
         super().tick_hook()
+
+
+class TextField(TextEntryBox):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def _handle_key_down(self, unicode, key, mod):
+        if key == pygame.K_RETURN and not mod & pygame.KMOD_SHIFT:
+            self.send_message('text-entry', text=self.text)
+        else:
+            super()._handle_key_down(unicode, key, mod)

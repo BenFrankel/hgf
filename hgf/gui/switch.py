@@ -27,7 +27,7 @@ class Switch(StructuralComponent):
 
     def load_hook(self):
         if self.location is not None:
-            self.location.load()
+            self.location._load()
 
     def enter_node(self, child):
         if self.location is not child:
@@ -35,7 +35,7 @@ class Switch(StructuralComponent):
                 self.location.deactivate()
             self.location = child
             if self.is_loaded and not child.is_loaded:
-                child.load()
+                child._load()
             if child.can_focus:
                 child.take_focus()
             child.activate()

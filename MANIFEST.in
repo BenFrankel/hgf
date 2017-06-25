@@ -1,3 +1,1 @@
-include README.rst
-include docs/book.toml
-include docs/src/*.md
+include README.md

@@ -29,9 +29,8 @@ class Text(StructuralComponent):
         self._font = font
         self.fgcolor = (0, 0, 0) if fgcolor is None else fgcolor
 
-    def load_hook(self):
-        if self._font is None:
-            self._font = self.style_get('font')
+    def load_style(self):
+        self._font = self.style_get('font')
 
     @property
     def text(self):
@@ -80,11 +79,10 @@ class Text(StructuralComponent):
 
 
 class TextBox(StructuralComponent):
-    def __init__(self, w, h, text='', justify='left', border=1, margin=2, **kwargs):
+    def __init__(self, w, h, text='', justify='left', margin=3, **kwargs):
         super().__init__(w, h, **kwargs)
         self.type = 'text-box'
 
-        self.border = border
         self.margin = margin
         self.justify = justify
         self.font = None
@@ -94,22 +92,21 @@ class TextBox(StructuralComponent):
         self.text = text
         self.lines = []
 
-    def load_hook(self):
-        self.font = self.style_get('font')
-        self.font.size = 12#something
-        self.fgcolor = (0, 0, 0)#self.style_get('fgcolor')
-        self.line_height = self.font.get_sized_height()
-        self.set_text(self.text)
+        self._bg_factory = None
 
-    @property
-    def gap(self):
-        return self.border + self.margin
+    def load_style(self):
+        self.font = self.style_get('font')
+        self.font.size = self.options_get('font-size')
+        self.line_height = self.font.get_sized_height()
+        self.fgcolor = self.style_get('fg-color')
+        self.set_text(self.text)
+        self._bg_factory = self.style_get('background')
 
     def _wrap_paragraph(self, text):
         if text == '':
             return ['']
 
-        w = self.w - 2 * self.gap
+        w = self.w - 2 * self.margin
 
         words = text.split(' ')
         lines = []
@@ -158,7 +155,7 @@ class TextBox(StructuralComponent):
 
     def set_text(self, text):
         lines = self._wrap(text)
-        if len(lines) > (self.h - 2 * self.gap) // self.line_height:
+        if len(lines) > (self.h - 2 * self.margin) // self.line_height:
             return False
         while len(self.lines) > len(lines):
             self.unregister(self.lines[-1])
@@ -172,7 +169,7 @@ class TextBox(StructuralComponent):
         return True
 
     def _row_height(self, row):
-        return self.gap + row * self.line_height
+        return self.margin + row * self.line_height
 
     def _grid_pos(self, row, col):
         line = self.lines[row]
@@ -183,10 +180,10 @@ class TextBox(StructuralComponent):
             off = self.font.get_rect(line.text[:col]).w
 
         if self.justify == 'left':
-            return self.gap + off, self._row_height(row)
+            return self.margin + off, self._row_height(row)
         elif self.justify == 'right':
             line_w = self.font.get_rect(line.text).w
-            return off + self.w - self.gap - line_w, self._row_height(row)
+            return off + self.w - self.margin - line_w, self._row_height(row)
         elif self.justify == 'center':
             line_w = self.font.get_rect(line.text).w
             return self.w / 2 - line_w / 2 + off, self._row_height(row)
@@ -195,16 +192,16 @@ class TextBox(StructuralComponent):
         return sum(len(line.text) + 1 for line in self.lines[:row]) + col
 
     def tick_hook(self):
-        y = self.gap
+        y = self.margin
         for line in self.lines:
             if self.justify == 'left':
-                line.left = self.gap
+                line.left = self.margin
             elif self.justify == 'center':
                 line.left = (self.w - self.font.get_rect(line.text).w) / 2
             elif self.justify == 'right':
-                line.right = self.w - self.gap
+                line.right = self.w - self.margin
             line.y = y
             y += self.line_height
 
     def refresh(self):
-        self.background = self.style_get('background')(self.size, self.border)
+        self.background = self._bg_factory(self.size, self.margin)

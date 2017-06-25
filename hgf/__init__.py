@@ -21,12 +21,13 @@ from .app import\
     AppManager, App
 
 from .gui import\
-    StructuralComponent,\
-    Image,\
-    Text, TextBox, TextEntryBox,\
-    Widget, Button, Menu,\
+    Window,\
     Switch, Sequence, Hub,\
-    Window
+    TextEntryBox, TextField,\
+    Widget, Button, Menu,\
+    Text, TextBox,\
+    Image,\
+    StructuralComponent
 
 from .util import\
     Rect,\
@@ -38,10 +39,10 @@ __all__ = [
 
     'Window',
     'Switch', 'Sequence', 'Hub',
-    'TextBox', 'TextEntryBox',
+    'TextEntryBox', 'TextField',
     'Widget', 'Button', 'Menu',
+    'Text', 'TextBox',
     'Image',
-    'Text',
     'StructuralComponent',
 
     'Rect',

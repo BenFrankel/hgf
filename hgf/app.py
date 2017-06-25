@@ -118,13 +118,12 @@ class AppConfig:
 
     def load(self):
         # Resource aliases
-        self.load_resource_aliases(load_json(self.directory.get_path('config', 'resources')))
+        self.load_resource_aliases_from(self.directory.get_path('config', 'resources'))
 
         # Configuration
-        self.controls = self.load_controls(load_json(self.directory.get_path('config', 'controls')))
-        self.options = self.load_options(load_json(self.directory.get_path('config', 'options')))
-        self.style = self.load_style(load_json(self.directory.get_path('config', 'style')))
-        self.compose_style(self)
+        self.load_controls_from(self.directory.get_path('config', 'controls'))
+        self.load_options_from(self.directory.get_path('config', 'options'))
+        self.load_style_from(self.directory.get_path('config', 'style'))
 
     def load_resource_aliases(self, info):
         for resource, aliases in info.items():
@@ -140,6 +139,9 @@ class AppConfig:
             elif resource == 'music':
                 for alias, origin in aliases.items():
                     self.resources.music[alias] = self.resources.music[origin]
+
+    def load_resource_aliases_from(self, filename):
+        self.load_resource_aliases(load_json(filename))
 
     def load_style(self, info):
         result = dict()
@@ -166,6 +168,10 @@ class AppConfig:
                     result[name][context][attr_name] = value
         return result
 
+    def load_style_from(self, filename):
+        self.style = self.load_style(load_json(filename))
+        self.compose_style(self)
+
     def load_options(self, info):
         result = dict()
         for context, names in info.items():
@@ -179,6 +185,9 @@ class AppConfig:
                     result[name][context][attr_name] = attr_value
         return result
 
+    def load_options_from(self, filename):
+        self.options = self.load_options(load_json(filename))
+
     def load_controls(self, info):
         result = dict()
         for context, controls in info.items():
@@ -188,6 +197,9 @@ class AppConfig:
                 for key in keys:
                     result[context][key.lower()] = name
         return result
+
+    def load_controls_from(self, filename):
+        self.controls = self.load_controls(load_json(filename))
 
     def style_get(self, query, type_=None, context=None):
         attempts = ('global', 'global'), (type_, 'global'), ('global', context), \
@@ -236,51 +248,62 @@ class AppConfig:
 
 class App(Window):
     def __init__(self, manager, **kwargs):
-        self.directory = manager.directory
-        self.resources = manager.resources
+        self._directory = manager.directory
+        self._resources = manager.resources
 
-        self.config = AppConfig(self.directory, self.resources)
-        self.config.style_packs = manager.style_packs
-        self.config.compose_style = manager.compose_style
-        self.config.load()
+        self._config = AppConfig(self._directory, self._resources)
+        self._config.style_packs = manager.style_packs
+        self._config.compose_style = manager.compose_style
+        self._config.load()
 
-        super().__init__(*self.config.options_get('size', 'window'), **kwargs)
+        super().__init__(*self._config.options_get('size', 'window'), **kwargs)
         self.app = self
 
-        self.focus_stack = []
+        self._focus_stack = []
 
         try:
             pygame.mixer.music.play(loops=-1)  # TODO: Handle music properly
         except pygame.error:
             pass
 
+    def load_style_from(self, filename):
+        self._config.load_style_from(filename)
+        self._reload_style()
+
+    def load_options_from(self, filename):
+        self._config.load_options_from(filename)
+        self._reload_options()
+
+    def load_controls_from(self, filename):
+        self._config.load_controls_from(filename)
+
     def key_down_hook(self, unicode, key, mod):
-        if self.focus_stack:
-            self.focus_stack[-1].key_down(unicode, key, mod)
+        if self._focus_stack:
+            self._focus_stack[-1]._key_down(unicode, key, mod)
 
     def key_up_hook(self, key, mod):
-        if self.focus_stack:
-            self.focus_stack[-1].key_up(key, mod)
+        if self._focus_stack:
+            self._focus_stack[-1]._key_up(key, mod)
 
     def give_focus(self, component):
         component.is_focused = True
-        if self.focus_stack:
-            self.focus_stack[-1].is_focused = False
+        if self._focus_stack:
+            self._focus_stack[-1].is_focused = False
         try:
-            self.focus_stack.remove(component)
+            self._focus_stack.remove(component)
         except ValueError:
             pass
-        self.focus_stack.append(component)
+        self._focus_stack.append(component)
 
     def remove_focus(self, component):
         component.is_focused = False
-        self.focus_stack.remove(component)
+        self._focus_stack.remove(component)
 
 
 class AppManager:
     def __init__(self, name, factory=App):
         self.name = name
-        self._loaded = False
+        self._is_loaded = False
 
         # Shared data
         self.directory = AppDirectory(self.name)
@@ -296,13 +319,13 @@ class AppManager:
         self.directory.load()
         self.resources.load()
 
-        self._loaded = True
+        self._is_loaded = True
 
     def spawn_app(self):
-        if not self._loaded:
+        if not self._is_loaded:
             raise RuntimeError('Cannot launch app \'{}\' without loading its manager first'.format(self.name))
         app = self.factory(self)
-        app.load()
+        app._load()
         return app
 
     def get_font(self, name):
