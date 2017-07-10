@@ -16,7 +16,6 @@
 #                                                                             #
 ###############################################################################
 
-
 import time
 import functools
 
@@ -24,6 +23,38 @@ import functools
 # TODO: Handle negative time properly
 @functools.total_ordering
 class Time:
+    @staticmethod
+    def parse(text):
+        result = Time()
+        chunks = text.split(':', 2)
+
+        secs = chunks[-1].split('.', 1)
+        result.s = int(secs[0])
+        try:
+            result.ms = int(secs[1])
+        except IndexError:
+            pass
+
+        try:
+            result.m = int(chunks[-2])
+        except IndexError:
+            pass
+
+        try:
+            hours = chunks[-3]
+            try:
+                d, _, h = hours.split(' ', 2)
+                result.d = int(d)
+                result.h = int(h)
+            except KeyError:
+                pass
+        except IndexError:
+            pass
+
+        return result
+
+
+
     def __init__(self, d=0, h=0, m=0, s=0, ms=0):
         self._d = 0
         self._h = 0
@@ -146,11 +177,11 @@ class Timer:
     def __init__(self):
         self.last_time = None
         self._time = Time()
-        self._is_running = False
+        self._is_paused = True
 
     @property
     def time(self):
-        if not self._is_running:
+        if self._is_paused:
             return self._time
         self.update()
         return self._time
@@ -160,43 +191,47 @@ class Timer:
         self._time = other
 
     @property
-    def is_running(self):
-        if not self._is_running:
-            return False
+    def is_paused(self):
+        if self._is_paused:
+            return True
         self.update()
-        return self._is_running
+        return self._is_paused
+
+    @is_paused.setter
+    def is_paused(self, other):
+        self._is_paused = other
+
+    @property
+    def is_running(self):
+        return not self.is_paused
 
     @is_running.setter
     def is_running(self, other):
-        self._is_running = other
+        self._is_paused = not other
 
     def start(self, start_time=Time()):
         self.time = start_time
         self.last_time = Time(s=time.monotonic())
-        self._is_running = True
+        self._is_paused = False
 
     def update(self):
-        if self._is_running:
+        if not self._is_paused:
             current_time = Time(s=time.monotonic())
             self._time += current_time - self.last_time
             self.last_time = current_time
 
     def pause(self):
         self.update()
-        self._is_running = False
+        self._is_paused = True
 
     def unpause(self):
         self.last_time = Time(s=time.monotonic())
-        self._is_running = True
+        self._is_paused = False
 
     def reset(self):
         self.last_time = None
         self.time = Time()
-        self._is_running = False
-
-    def restart(self, start_time=Time()):
-        self.reset()
-        self.start(start_time)
+        self._is_paused = True
 
     def __str__(self):
         return '{}({}, is_running={})'.format(self.__class__.__name__, self.time, self.is_running)
@@ -204,7 +239,7 @@ class Timer:
 
 class CountdownTimer(Timer):
     def update(self):
-        if self._is_running:
+        if not self._is_paused:
             current_time = Time(s=time.monotonic())
             self._time -= current_time - self.last_time
             self.last_time = current_time

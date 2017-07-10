@@ -16,27 +16,15 @@
 #                                                                             #
 ###############################################################################
 
-
+from ..component import Component
 from ..util import Rect, keys
 
 import pygame
 
 
-class StructuralComponent(Rect):
-    def __init__(self, w, h, x=0, y=0, visible=True, hover=True, click=True, focus=False, opacity=1):
+class GraphicalComponent(Rect, Component):
+    def __init__(self, x=0, y=0, w=0, h=0, visible=True, hover=True, click=True, focus=False, opacity=1):
         super().__init__(x, y, w, h)
-
-        # Config identification
-        self.type = None
-        self._context = None
-
-        # Hierarchical references
-        self._app = None
-        self.parent = None
-        self._children = []
-
-        # Depth
-        self.z = 0
 
         # General flags
         self.is_visible = visible
@@ -44,7 +32,6 @@ class StructuralComponent(Rect):
         self.can_click = click
         self.can_focus = focus
         self._opacity = opacity
-        self.is_paused = False
         self.is_hovered = False
         self.is_focused = False
 
@@ -73,21 +60,11 @@ class StructuralComponent(Rect):
         self._old_rect = None
         self._old_visible = None
 
-        self.is_loaded = False
-
-    def load_style_hook(self): pass
-
-    def load_options_hook(self): pass
-
-    def load_hook(self): pass
+    def refresh(self): pass
 
     def show_hook(self): pass
 
     def hide_hook(self): pass
-
-    def pause_hook(self): pass
-
-    def unpause_hook(self): pass
 
     def activate_hook(self): pass
 
@@ -113,11 +90,17 @@ class StructuralComponent(Rect):
 
     def track_hook(self): pass
 
-    def tick_hook(self): pass
+    def _reload_style(self):
+        super()._reload_style()
+        self.refresh()
 
-    @property
-    def is_root(self):
-        return self.parent is None
+    def _reload_options(self):
+        super()._reload_options()
+        self.refresh()
+
+    def _load(self):
+        super()._load()
+        self.refresh()
 
     @property
     def is_transparent(self):
@@ -130,26 +113,6 @@ class StructuralComponent(Rect):
     @property
     def is_opaque(self):
         return self._opacity == 2
-
-    @property
-    def app(self):
-        return self._app
-
-    @app.setter
-    def app(self, other):
-        self._app = other
-        for child in self._children:
-            child.app = other
-
-    @property
-    def context(self):
-        return self._context
-
-    @context.setter
-    def context(self, other):
-        self._context = other
-        for child in self._children:
-            child.context = other
 
     @property
     def is_dirty(self):
@@ -179,9 +142,10 @@ class StructuralComponent(Rect):
     def background(self):
         return self._background
 
-    @background.setter  # Perhaps find a better solution than this to resizing?
+    @background.setter
     def background(self, other):
-        if self.size != other.get_size():
+        if self._background.get_size() != other.get_size():
+            self.size = other.get_size()
             if self.is_translucent:
                 self._display = pygame.Surface(other.get_size(), pygame.SRCALPHA)
             elif self.is_opaque:
@@ -190,7 +154,6 @@ class StructuralComponent(Rect):
             self._background.set_colorkey(self.colorkey)
             self._display.set_colorkey(self.colorkey)
         self._background = other
-        self.size = other.get_size()
         self.is_dirty = True
 
     def copy_rect(self):
@@ -199,44 +162,14 @@ class StructuralComponent(Rect):
     def rel_rect(self):
         return Rect(0, 0, self.w, self.h)
 
-    def abs_rect(self):
+    def _abs_pos(self):
         if self.is_root:
-            return self.copy_rect()
-        abs_pos = self.parent.abs_rect().pos
-        return Rect(abs_pos[0] - self.pos[0], abs_pos[1] - self.pos[1], self.w, self.h)
+            return self.pos
+        px, py = self.parent._abs_pos()
+        return px + self.x, py + self.y
 
-    def resize(self, size):
-        if self.size != size:
-            self.size = size
-            self.refresh()
-
-    def style_get(self, query):
-        return self._app._config.style_get(query, self.type, self.context)
-
-    def options_get(self, query):
-        return self._app._config.options_get(query, self.type, self.context)
-
-    def controls_get(self, query):
-        return self._app._config.controls_get(query, self.context)
-
-    def _reload_style(self):
-        for child in self._children:
-            child._reload_style()
-        self.load_style_hook()
-        self.refresh()
-
-    def _reload_options(self):
-        for child in self._children:
-            child._reload_options()
-        self.load_options_hook()
-        self.refresh()
-
-    def _load(self):
-        self.load_style_hook()
-        self.load_options_hook()
-        self.load_hook()
-        self.refresh()
-        self.is_loaded = True
+    def abs_rect(self):
+        return Rect(*self._abs_pos(), self.w, self.h)
 
     def show(self):
         self.is_visible = True
@@ -259,20 +192,6 @@ class StructuralComponent(Rect):
         else:
             self.show()
 
-    def pause(self):
-        self.is_paused = True
-        self.pause_hook()
-
-    def unpause(self):
-        self.is_paused = False
-        self.unpause_hook()
-
-    def toggle_pause(self):
-        if self.is_paused:
-            self.unpause()
-        else:
-            self.pause()
-
     def activate(self):
         self.show()
         self.unpause()
@@ -291,43 +210,15 @@ class StructuralComponent(Rect):
         self._app.remove_focus(self)
         self.lose_focus_hook()
 
-    def register(self, child):
-        if not child.is_root:
-            child.parent.unregister(child)
-        for rect in child._dirty_rects:
-            child._clean_dirty_rects(rect)
-        child.app = self._app
-        child.parent = self
-        if child.context is None and self.context is not None:
-            child.context = self.context
-        child.is_dirty = child.is_visible
-        self._children.append(child)
-
-    def register_all(self, children):
-        for child in children:
-            self.register(child)
-
-    def unregister(self, child):
-        self._children.remove(child)
-        child.app = None
-        child.parent = None
-        child.context = None
-        if child._old_visible and child._old_rect is not None:
-            self._add_dirty_rect(child._old_rect)
-        if child.is_focused:
-            child.lose_focus()
-
-    def unregister_all(self, children):
-        for child in children:
-            self.unregister(child)
-
-    def register_load(self, child):
-        self.register(child)
-        child._load()
-
-    def register_load_all(self, children):
-        for child in children:
-            self.register_load(child)
+    def disowned_hook(self):
+        if self._old_visible and self._old_rect is not None:
+            try:
+                self.parent._add_dirty_rect(self._old_rect)
+            except AttributeError:
+                pass
+        for rect in self._dirty_rects:
+            self._clean_dirty_rects(rect)
+        self.is_dirty = self.is_visible
 
     def _key_down(self, unicode, key, mod):
         try:
@@ -378,16 +269,6 @@ class StructuralComponent(Rect):
             if child.can_click and not child.is_paused and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
                 child._mouse_up(rel_pos, button)
-
-    def handle_message(self, sender, message, **params):
-        self.send_message(message)
-
-    def send_message(self, message, **params):
-        if not self.is_root:
-            self.parent.handle_message(self, message, **params)
-
-    def refresh(self):
-        pass
 
     def _add_dirty_rect(self, rect):
         if not self.is_dirty and rect not in self._dirty_rects:
@@ -477,15 +358,6 @@ class StructuralComponent(Rect):
         for child in self._children:
             if not child.is_paused:
                 child._track()
-
-    def _tick(self):
-        if not all(self._children[i].z <= self._children[i+1].z for i in range(len(self._children) - 1)):
-            self._children.sort(key=lambda x: x.z)
-            self.is_dirty = True
-        for child in self._children:
-            if not child.is_paused:
-                child._tick()
-        self.tick_hook()
 
     def step(self):
         self._track()

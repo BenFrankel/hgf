@@ -16,13 +16,12 @@
 #                                                                             #
 ###############################################################################
 
+from .component import GraphicalComponent
 
-from .base import StructuralComponent
 
-
-class Switch(StructuralComponent):
-    def __init__(self, width, height, opacity=0, **kwargs):
-        super().__init__(width, height, opacity=opacity, **kwargs)
+class Switch(GraphicalComponent):
+    def __init__(self, opacity=0, **kwargs):
+        super().__init__(opacity=opacity, **kwargs)
         self.location = None
 
     def load_hook(self):
@@ -45,8 +44,8 @@ class Sequence(Switch):
     MSG_NEXT = 'next'
     MSG_PREV = 'prev'
 
-    def __init__(self, width, height, **kwargs):
-        super().__init__(width, height, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.loc_list = []
         self.loc_index = None
 
@@ -86,8 +85,8 @@ class Sequence(Switch):
 
 
 class Hub(Switch):
-    def __init__(self, width, height, **kwargs):
-        super().__init__(width, height, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.loc_center = None
         self.loc_nodes = dict()
 

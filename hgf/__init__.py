@@ -28,7 +28,7 @@ from .gui import\
     SimpleWidget, Widget,\
     Text, TextBox,\
     Image,\
-    StructuralComponent
+    GraphicalComponent
 
 from .util import\
     Rect,\
@@ -45,7 +45,7 @@ __all__ = [
     'SimpleWidget', 'Widget',
     'Text', 'TextBox',
     'Image',
-    'StructuralComponent',
+    'GraphicalComponent',
 
     'Rect',
     'Time', 'Timer', 'CountdownTimer',

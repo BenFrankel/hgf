@@ -6,7 +6,7 @@
 
 * Version 0.2.0
 
-** New Components [3/7]
+** New StructuralComponents [3/7]
 
 - [X] TextBox
 - [X] TextEntryBox
@@ -16,14 +16,20 @@
 - [ ] Frame
 - [ ] TextFrame
 
+** New Components [0/2]
+
+- [ ] Pulse
+- [ ] Delay
+
 ** Refactoring [2/2]
 
 - [X] Hook functions
 - [X] Widget renamed to SimpleWidget
 
-** Restructuring [1/1]
+** Restructuring [2/2]
 
 - [X] Explicit load step
+- [X] ~appdata/<appname>/dir.json~ changed to ~appdata/<appname>.json~
 
 ** Convenience [3/4]
 
@@ -31,3 +37,7 @@
 - [X] Toggle show / pause
 - [X] Simultaneously register and load (~register_load~ and ~register_load_all~)
 - [ ] Default config files for built-in configurables
+
+** Miscellaneous [0/1]
+
+- [ ] Style, options and controls can be dynamically reloaded

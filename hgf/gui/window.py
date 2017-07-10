@@ -16,29 +16,32 @@
 #                                                                             #
 ###############################################################################
 
-
-from .base import StructuralComponent
+from .component import GraphicalComponent
 
 import pygame
 
 
-class Window(StructuralComponent):
+class Window(GraphicalComponent):
     MSG_EXIT = 'exit'
 
-    def __init__(self, w, h, *args, **kwargs):
-        super().__init__(w, h, **kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(**kwargs)
         self.type = 'window'
 
         self.args = args
         self.surf = None
 
         self.bg_color = None
+        self.title = 'hgf Window'
 
-    def load_style_hook(self):
+    def load_style(self):
         self.bg_color = self.style_get('bg-color')
 
-    def load_options_hook(self):
-        pygame.display.set_caption(self.options_get('title'))
+    def load_options(self):
+        self.title = self.options_get('title')
+
+    def refresh(self):
+        pygame.display.set_caption(self.title)
 
     def open(self):
         self.surf = pygame.display.set_mode(self.size, *self.args)

@@ -16,7 +16,6 @@
 #                                                                             #
 ###############################################################################
 
-
 from .gui import Window
 
 import pygame
@@ -36,14 +35,15 @@ def load_json(filename):
 
 class AppDirectory:
     def __init__(self, name):
-        self.root_dir = os.path.join('appdata', name)
+        self.name = name
+        self.root = 'appdata'
         self.dirs = dict()
 
     def get_path(self, dir_, name):
-        return os.path.join(self.root_dir, self.dirs[dir_], name)
+        return os.path.join(self.root, self.dirs[dir_], name)
 
     def load(self):
-        filename = os.path.join(self.root_dir, 'dir.json')
+        filename = os.path.join(self.root, self.name + '.json')
         with open(filename) as f:
             dir_json = json.load(f)
         for name, path in dir_json.items():
@@ -246,6 +246,7 @@ class AppConfig:
         self.style[name][context][query] = value
 
 
+# TODO: reload_options should handle changing window size
 class App(Window):
     def __init__(self, manager, **kwargs):
         self._directory = manager.directory
@@ -256,7 +257,8 @@ class App(Window):
         self._config.compose_style = manager.compose_style
         self._config.load()
 
-        super().__init__(*self._config.options_get('size', 'window'), **kwargs)
+        w, h = self._config.options_get('size', 'window')
+        super().__init__(w=w, h=h, **kwargs)
         self.app = self
 
         self._focus_stack = []

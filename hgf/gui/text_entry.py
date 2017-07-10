@@ -1,6 +1,24 @@
+###############################################################################
+#                                                                             #
+#   Copyright 2017 - Ben Frankel                                              #
+#                                                                             #
+#   Licensed under the Apache License, Version 2.0 (the "License");           #
+#   you may not use this file except in compliance with the License.          #
+#   You may obtain a copy of the License at                                   #
+#                                                                             #
+#       http://www.apache.org/licenses/LICENSE-2.0                            #
+#                                                                             #
+#   Unless required by applicable law or agreed to in writing, software       #
+#   distributed under the License is distributed on an "AS IS" BASIS,         #
+#   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  #
+#   See the License for the specific language governing permissions and       #
+#   limitations under the License.                                            #
+#                                                                             #
+###############################################################################
+
 from .widget import SimpleWidget, Widget
 from .text import TextBox
-from .base import StructuralComponent
+from .component import GraphicalComponent
 from ..util import Time, CountdownTimer
 
 import pygame
@@ -58,13 +76,21 @@ def _edit_region(text, start, end, unicode, key, mod):
     return start + len(unicode), text[:start] + unicode + text[end:]
 
 
-class Cursor(StructuralComponent):
-    BLINK_RATE = Time(ms=500)
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class Cursor(GraphicalComponent):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         self.timer = CountdownTimer()
         self._bg_factory = None
+        self._blink_rate = None
+
+    def load_style(self):
+        self._bg_factory = self.parent.style_get('cursor-bg')
+
+    def load_options(self):
+        self._blink_rate = Time.parse(self.parent.options_get('cursor-blink-rate'))
+
+    def refresh(self):
+        self.background = self._bg_factory(self.size)
 
     def pause_hook(self):
         self.timer.pause()
@@ -73,29 +99,29 @@ class Cursor(StructuralComponent):
         self.timer.unpause()
 
     def activate_hook(self):
-        self.timer.start(Cursor.BLINK_RATE)
+        self.timer.start(self._blink_rate)
 
-    def restart(self):
+    def start(self):
         if not self.is_paused:
-            self.timer.restart(Cursor.BLINK_RATE)
             self.show()
+            self.timer.start(self._blink_rate)
 
     def tick_hook(self):
-        if not self.timer.is_running:
+        if self.timer.is_paused:
             self.toggle_show()
-            self.timer.start(Cursor.BLINK_RATE)
-
-    def refresh(self):
-        self.background = self._bg_factory(self.size)
+            self.timer.start(self._blink_rate)
 
 
-class Highlight(StructuralComponent):
-    def __init__(self, line_height, w, h, **kwargs):
-        super().__init__(w, h, **kwargs)
+class Highlight(GraphicalComponent):
+    def __init__(self, line_height, **kwargs):
+        super().__init__(**kwargs)
         self.line_height = line_height
         self.start = (0, 0)
         self.end = (0, 0)
         self.bgcolor = None
+
+    def load_style(self):
+        self.bgcolor = self.parent.style_get('highlight-bg-color')
 
     def refresh(self):
         surf = pygame.Surface(self.size, pygame.SRCALPHA)
@@ -166,7 +192,7 @@ class CursorPlacement:
 
 # TODO: Undo
 # TODO: Double click to highlight word, triple to highlight line
-class TextEntryBox(TextBox, Widget):
+class TextEntryBox(Widget, TextBox):
     NAVIGATE_KEYS = [
         pygame.K_LEFT,
         pygame.K_RIGHT,
@@ -187,42 +213,42 @@ class TextEntryBox(TextBox, Widget):
     MSG_COPY = 'text-copy'
     MSG_PASTE = 'text-paste'
 
-    def __init__(self, w, h, **kwargs):
-        super().__init__(w, h, focus=True, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(focus=True, **kwargs)
         # Cursor
         self.cursor = None
         self._cursor_place = CursorPlacement()
-        self._cursor_bg_factory = None
 
         # Highlighting
-        self._hl_cursor_place = None
         self.highlight = None
-        self._highlight_bgcolor = None
+        self._hl_cursor_place = None
 
     def load_hook(self):
-        self.cursor = Cursor(max(self.line_height // 10, 1), self.line_height)
-        self.cursor._bg_factory = self._cursor_bg_factory
+        self.cursor = Cursor()
         self.cursor.z = 10
         self.cursor.deactivate()
         self.register_load(self.cursor)
 
-        self.highlight = Highlight(self.line_height, self.w - 2 * self.margin, self.h - 2 * self.margin)
-        self.highlight.bgcolor = self._highlight_bgcolor
+        self.highlight = Highlight(self.line_height,
+                                   w=self.w - 2 * self.margin,
+                                   h=self.h - 2 * self.margin)
         self.highlight.z = -10
         self.highlight.pos = self.margin, self.margin
         self.highlight.deactivate()
         self.register_load(self.highlight)
 
-    def load_style_hook(self):
-        super().load_style_hook()
-        self._cursor_bg_factory = self.style_get('cursor-bg')
-        self._highlight_bgcolor = self.style_get('highlight-bg-color')
+    def refresh(self):
+        super().refresh()
+        self.cursor.w = max(self.line_height // 10, 1)
+        self.cursor.h = self.line_height
+        self.cursor.refresh()
 
     def take_focus_hook(self):
         self.cursor.activate()
         self._place_cursor_by_index(self._cursor_place, self._cursor_place.index)
 
     def lose_focus_hook(self):
+        super().lose_focus_hook()
         self.cursor.deactivate()
 
     def mouse_down_hook(self, pos, button):
@@ -237,7 +263,7 @@ class TextEntryBox(TextBox, Widget):
         # Shift-clicked where the cursor already is
         if self._hl_cursor_place is not None and self._hl_cursor_place == self._cursor_place:
             self._hl_cursor_place = None
-        self.cursor.restart()
+        self.cursor.start()
 
     def mouse_motion_hook(self, start, end, buttons):
         super().mouse_motion_hook(start, end, buttons)
@@ -249,7 +275,6 @@ class TextEntryBox(TextBox, Widget):
             self._place_cursor_by_pos(self._cursor_place, end)
             if started_highlighting and self._hl_cursor_place == self._cursor_place:
                 self._hl_cursor_place = None
-            self.cursor.restart()
 
     def _handle_key(self, unicode, key, mod):
         prev_index = self._cursor_place.index
@@ -278,6 +303,7 @@ class TextEntryBox(TextBox, Widget):
             if self.set_text(text):
                 if index != self._cursor_place.index:
                     self._place_cursor_by_index(self._cursor_place, index)
+        self.cursor.start()
 
     def key_down_hook(self, unicode, key, mod):
         super().key_down_hook(unicode, key, mod)
@@ -362,7 +388,7 @@ class TextEntryBox(TextBox, Widget):
             else:
                 self._place_cursor_by_index(cursor, cursor.index + len(self.lines[cursor.row].text) - cursor.col)
 
-        self.cursor.restart()
+        self.cursor.start()
 
     def _place_cursor_by_pos(self, cursor, pos):
         # Raw x, y is given
@@ -429,8 +455,8 @@ class TextEntryBox(TextBox, Widget):
 
 
 class TextField(TextEntryBox):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def key_down_hook(self, unicode, key, mod):
         if key == pygame.K_RETURN and not mod & pygame.KMOD_SHIFT:

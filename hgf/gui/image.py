@@ -16,18 +16,16 @@
 #                                                                             #
 ###############################################################################
 
+from .component import GraphicalComponent
 
-from .base import StructuralComponent
 
-
-class Image(StructuralComponent):
+class Image(GraphicalComponent):
     def __init__(self, image_name):
-        super().__init__(0, 0, hover=False, click=False)
+        super().__init__(hover=False, click=False)
         self._image = None
         self.image_name = image_name
-        self.load_hook.append(self._load_image)
 
-    def _load_image(self):
+    def load_hook(self):
         self.image = self._app.get_image(self.image_name)
 
     @property

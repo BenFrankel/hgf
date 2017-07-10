@@ -16,12 +16,14 @@
 #                                                                             #
 ###############################################################################
 
-
 import pygame
 
 
 class Rect:
     def __init__(self, x=0, y=0, w=0, h=0):
+        # Multiple inheritance compatibility
+        super().__init__()
+
         self._x = x
         self._y = y
         self._w = w

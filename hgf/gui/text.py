@@ -16,21 +16,27 @@
 #                                                                             #
 ###############################################################################
 
+from .component import GraphicalComponent
 
-from .base import StructuralComponent
 
-
-class Text(StructuralComponent):
-    def __init__(self, text='', font=None, fontsize=14, fgcolor=None):
-        super().__init__(0, 0, hover=False, click=False)
+class Text(GraphicalComponent):
+    def __init__(self, text='', font=None, fontsize=14, fgcolor=None, parent_style=False):
+        super().__init__(hover=False, click=False)
         self._text = text
         self._font = font
         self._fontsize = fontsize
         self._font = font
         self.fgcolor = (0, 0, 0) if fgcolor is None else fgcolor
+        self._parent_style = parent_style
 
-    def load_style_hook(self):
-        self._font = self.style_get('font')
+    def load_style(self):
+        if self._parent_style:
+            self._font = self.parent.style_get('font')
+        else:
+            self._font = self.style_get('font')
+
+    def refresh(self):
+        self.background = self.font.render(self.text, fgcolor=self.fgcolor, size=self.fontsize)[0]
 
     @property
     def text(self):
@@ -68,19 +74,15 @@ class Text(StructuralComponent):
     def get_rect(self, text=None):
         return self.font.get_rect(self.text if text is None else text, size=self.fontsize)
 
-    def refresh(self):
-        self.background = self.font.render(self.text, fgcolor=self.fgcolor, size=self.fontsize)[0]
-
-    def __str__(self):
-        return self.text
-
     def __repr__(self):
         return 'Text(\'{}\')'.format(self.text)
 
+    __str__ = __repr__
 
-class TextBox(StructuralComponent):
-    def __init__(self, w, h, text='', justify='left', margin=3, **kwargs):
-        super().__init__(w, h, **kwargs)
+
+class TextBox(GraphicalComponent):
+    def __init__(self, text='', justify='left', margin=3, **kwargs):
+        super().__init__(**kwargs)
         self.type = 'text-box'
 
         self.margin = margin
@@ -94,13 +96,19 @@ class TextBox(StructuralComponent):
 
         self._bg_factory = None
 
-    def load_style_hook(self):
+    def load_style(self):
         self.font = self.style_get('font')
         self.font.size = self.options_get('font-size')
         self.line_height = self.font.get_sized_height()
         self.fgcolor = self.style_get('fg-color')
         self.set_text(self.text)
         self._bg_factory = self.style_get('background')
+
+    def refresh(self):
+        self.background = self._bg_factory(self.size, self.margin)
+        for line in self.lines:
+            line.font = self.font
+            line.fgcolor = self.fgcolor
 
     def _wrap_paragraph(self, text):
         if text == '':
@@ -161,7 +169,10 @@ class TextBox(StructuralComponent):
             self.unregister(self.lines[-1])
             del self.lines[-1]
         while len(lines) > len(self.lines):
-            self.lines.append(Text(font=self.font, fontsize=self.font.size, fgcolor=self.fgcolor))
+            self.lines.append(Text(font=self.font,
+                                   fontsize=self.font.size,
+                                   fgcolor=self.fgcolor,
+                                   parent_style=True))
             self.register_load(self.lines[-1])
         for old_line, line in zip(self.lines, lines):
             old_line.text = line
@@ -203,6 +214,3 @@ class TextBox(StructuralComponent):
             line.y = y
             y += self.line_height
         super().tick_hook()
-
-    def refresh(self):
-        self.background = self._bg_factory(self.size, self.margin)

@@ -16,7 +16,6 @@
 #                                                                             #
 ###############################################################################
 
-
 from .window import Window
 from .switch import Switch, Sequence, Hub
 from .text_entry import TextEntryBox, TextField
@@ -24,7 +23,7 @@ from .menu import Button, Menu
 from .widget import SimpleWidget, Widget
 from .text import Text, TextBox
 from .image import Image
-from .base import StructuralComponent
+from .component import GraphicalComponent
 
 
 __all__ = [
@@ -35,5 +34,5 @@ __all__ = [
     'SimpleWidget', 'Widget',
     'Text', 'TextBox',
     'Image',
-    'StructuralComponent',
+    'GraphicalComponent',
 ]

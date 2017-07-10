@@ -16,41 +16,52 @@
 #                                                                             #
 ###############################################################################
 
-from .button import Button
-from .component import GraphicalComponent
-from ..util import Rect
+from .widget import SimpleWidget
+from .text import Text
 
 
-# TODO: self.justify = 'left' or 'center' or 'right', default to 'center'
-class Menu(GraphicalComponent):
-    def __init__(self, **kwargs):
+class Button(SimpleWidget):
+    def __init__(self, label_name, message, **kwargs):
         super().__init__(**kwargs)
-        self.type = 'menu'
+        self.type = 'button'
 
-        self._button_info = []
-        self.buttons = []
+        self._label_name = label_name
+        self.message = message
 
-        self.button_gap = self.h // 50
-        self.button_w = self.w // 5
-        self.button_h = self.h // 10
+        self.label = None
+
+        self._bg_factory = None
 
     def load_hook(self):
-        for button_info in self._button_info:
-            self.buttons.append(Button(*button_info,
-                                       w=self.button_w,
-                                       h=self.button_h))
-            self.register_load(self.buttons[-1])
-        del self._button_info
+        self.label = Text(self._label_name,
+                          fontsize=max(self.h // 3, 14),
+                          fgcolor=(255, 255, 255),
+                          parent_style=True)
+        self.label.center = self.rel_rect().center
+        self.register_load(self.label)
 
-    def add_button(self, name, message):
-        self._button_info.append((name, message))
+    def load_style(self):
+        self._bg_factory = self.style_get('background')
+
+    def refresh(self):
+        self.background = self._bg_factory(self.size, self.mouse_state)
+
+    @property
+    def label_name(self):
+        return self._label_name
+
+    @label_name.setter
+    def label_name(self, other):
+        if self._label_name != other:
+            self._label_name = other
+            self.label.text = other
+
+    def mouse_state_change_hook(self, before, after):
+        if before == SimpleWidget.PRESS and after == SimpleWidget.HOVER:
+            self.send_message(self.message)
 
     def tick_hook(self):
-        buttons_rect = Rect(w=self.button_w,
-                            h=len(self.buttons) * (self.button_h + self.button_gap) - self.button_gap)
-        button_x = self.midx - buttons_rect.midx
-        button_y = self.midy - buttons_rect.midy
-        for button in self.buttons:
-            button.x = button_x
-            button.y = button_y
-            button_y += button.h + self.button_gap
+        self.label.center = self.rel_rect().center
+        if self.mouse_state == SimpleWidget.PRESS:
+            self.label.x -= 1
+            self.label.y += 1
