@@ -27,14 +27,11 @@ class TimingComponent(Component):
         self._expiration_timer = CountdownTimer()
 
         self._timer = Timer()
+        self.is_running = False
 
     def time_shift_hook(self, before, after): pass
 
     def trigger(self): pass
-
-    @property
-    def is_running(self):
-        return self._timer.is_running
 
     def freeze_hook(self):
         self._timer.pause()
@@ -46,6 +43,7 @@ class TimingComponent(Component):
 
     def start(self, duration=None):
         if not self.is_frozen:
+            self.is_running = True
             self.unpause()
             self._timer.start()
             self._duration = duration
@@ -54,13 +52,18 @@ class TimingComponent(Component):
 
     def reset(self):
         if not self.is_frozen:
+            self.is_running = False
             self._timer.reset()
             self._expiration_timer.reset()
 
     def tick_hook(self):
-        if self._timer.is_running:
+        if self.is_running:
             if self._duration is not None and self._expiration_timer.is_paused:
-                self.time_shift_hook(self._timer._last_time, self._duration)
+                self.is_running = False
+                self.time_shift_hook(self._timer.last_updated, self._duration)
                 self.reset()
             else:
-                self.time_shift_hook(self._timer._last_time, self._timer.time)
+                self.time_shift_hook(self._timer.last_updated, self._timer.time)
+
+    def __str__(self):
+        return '{}({})'.format(self.__class__.__name__, self._timer.time)

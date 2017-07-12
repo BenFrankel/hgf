@@ -18,7 +18,7 @@
 
 from .component import GraphicalComponent
 
-from ..timing import Delay
+from ..timing import Delay, Pulse
 from ..util import Time
 
 import pygame
@@ -96,20 +96,26 @@ class SimpleWidget(GraphicalComponent):
 # TODO: Drag hook?
 # TODO: Scroll hook?
 class Widget(SimpleWidget):
-    MSG_LONG_KEY_DOWN = 'long-key-down'
+    # Messages
+    MSG_KEY_REPEAT_START = 'key-repeat-start'
+    MSG_KEY_REPEAT = 'key-repeat'
     MSG_LONG_HOVER = 'long-hover'
     MSG_MULTIPLE_CLICK = 'multiple-click'
 
-    LONG_KEY_DOWN_DELAY = '0.450'
+    # Default values
+    KEY_REPEAT_DELAY = '0.450'
+    KEY_REPEAT_RATE = '0.015'
     LONG_HOVER_DELAY = '0.450'
     MULTIPLE_CLICK_DELAY = '0.250'
 
-    def __init__(self, **kwargs):
+    def __init__(self, key_repeat=True, **kwargs):
         super().__init__(**kwargs)
-        # Long key down
-        self._long_key_down_active = False
-        self._long_key_down_timer = None
-        self._last_key_down = None
+        # Key repeat when held down
+        self._key_repeat = key_repeat
+        self._key_repeat_active = False
+        self._key_repeat_ticker = None
+        self._key_repeat_pulse = None
+        self._last_key = None
 
         # Long mouse hover
         self._long_hover_active = False
@@ -119,9 +125,30 @@ class Widget(SimpleWidget):
         self._multiple_click_count = 0
         self._multiple_click_timer = None
 
-    def long_key_down_hook(self, unicode, key, mod): pass
+    def load_hook(self):
+        super().load_hook()
+        self._key_repeat_ticker = Delay(Widget.MSG_KEY_REPEAT_START)
+        self.register_load(self._key_repeat_ticker)
 
-    def long_key_down_end_hook(self): pass
+        self._key_repeat_pulse = Pulse(Widget.MSG_KEY_REPEAT)
+        self.register_load(self._key_repeat_pulse)
+
+        self._long_hover_timer = Delay(Widget.MSG_LONG_HOVER)
+        self.register_load(self._long_hover_timer)
+
+        self._multiple_click_timer = Delay(Widget.MSG_MULTIPLE_CLICK)
+        self.register_load(self._multiple_click_timer)
+
+    def load_options(self):
+        super().load_options()
+        self._key_repeat_ticker.frequency = Time.parse(self.options_get('key-repeat-delay',
+                                                                        Widget.KEY_REPEAT_DELAY))
+        self._key_repeat_pulse.frequency = Time.parse(self.options_get('key-repeat-rate',
+                                                                       Widget.KEY_REPEAT_RATE))
+        self._long_hover_timer.frequency = Time.parse(self.options_get('long-hover-delay',
+                                                                       Widget.LONG_HOVER_DELAY))
+        self._multiple_click_timer.frequency = Time.parse(self.options_get('multiple-click-delay',
+                                                                           Widget.MULTIPLE_CLICK_DELAY))
 
     def long_hover_hook(self, pos): pass
 
@@ -132,37 +159,6 @@ class Widget(SimpleWidget):
     def triple_click_hook(self, pos): pass
 
     def multiple_click_hook(self, pos, count): pass
-
-    def load_hook(self):
-        super().load_hook()
-        self._long_key_down_timer = Delay(Widget.MSG_LONG_KEY_DOWN)
-        self.register_load(self._long_key_down_timer)
-
-        self._long_hover_timer = Delay(Widget.MSG_LONG_HOVER)
-        self.register_load(self._long_hover_timer)
-
-        self._multiple_click_timer = Delay(Widget.MSG_MULTIPLE_CLICK)
-        self.register_load(self._multiple_click_timer)
-
-    def load_options(self):
-        super().load_options()
-        self._long_key_down_timer.delay = Time.parse(self.options_get('long-key-down-delay',
-                                                                      Widget.LONG_KEY_DOWN_DELAY))
-        self._long_hover_timer.delay = Time.parse(self.options_get('long-hover-delay',
-                                                                   Widget.LONG_HOVER_DELAY))
-        self._multiple_click_timer.delay = Time.parse(self.options_get('multiple-click-delay',
-                                                                       Widget.MULTIPLE_CLICK_DELAY))
-
-    def _long_key_down(self, unicode, key, mod):
-        self._long_key_down_active = True
-        self.long_key_down_hook(unicode, key, mod)
-
-    def _long_key_down_end(self):
-        if self._long_key_down_active:
-            self._long_key_down_active = False
-            self._last_key_down = None
-            self._long_key_down_timer.reset()
-            self.long_key_down_end_hook()
 
     def _long_hover(self, pos):
         self._long_hover_active = True
@@ -180,18 +176,18 @@ class Widget(SimpleWidget):
 
     def lose_focus_hook(self):
         super().lose_focus_hook()
-        self._long_key_down_active = False
-        self._long_key_down_timer.reset()
+        self._key_repeat_active = False
+        self._key_repeat_ticker.reset()
 
     def key_down_hook(self, unicode, key, mod):
         super().key_down_hook(unicode, key, mod)
-        self._long_key_down_end()
-        self._long_key_down_timer.start()
-        self._last_key_down = (unicode, key, mod)
+        self._key_repeat_pulse.reset()
+        self._key_repeat_ticker.start()
+        self._last_key = (unicode, key, mod)
 
     def key_up_hook(self, key, mod):
         super().key_up_hook(key, mod)
-        self._long_key_down_end()
+        self._key_repeat_pulse.reset()
 
     def mouse_state_change_hook(self, before, after):
         super().mouse_state_change_hook(before, after)
@@ -226,8 +222,12 @@ class Widget(SimpleWidget):
             self._long_hover_timer.start()
 
     def handle_message(self, sender, message, **params):
-        if message == Widget.MSG_LONG_KEY_DOWN:
-            self._long_key_down(*self._last_key_down)
+        if message == Widget.MSG_KEY_REPEAT_START:
+            print('key repeat pulse starting for', self)
+            self._key_repeat_pulse.start()
+        elif message == Widget.MSG_KEY_REPEAT:
+            print('repeating key for', self)
+            self._key_down(*self._last_key)
         elif message == Widget.MSG_LONG_HOVER:
             self._long_hover(pygame.mouse.get_pos())
         elif message == Widget.MSG_MULTIPLE_CLICK:

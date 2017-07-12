@@ -202,6 +202,7 @@ class Time:
 class Timer:
     def __init__(self):
         self._last_time = None
+        self.last_updated = Time()
         self._time = Time()
         self._is_paused = True
 
@@ -250,6 +251,7 @@ class Timer:
         if not self._is_paused:
             current_time = Time.now()
             self._time += current_time - self._last_time
+            self.last_updated = self._time
             self._last_time = current_time
 
     def pause(self):

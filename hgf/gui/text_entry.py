@@ -79,21 +79,25 @@ def _edit_region(text, start, end, unicode, key, mod):
 
 
 class Cursor(GraphicalComponent):
+    BLINK_RATE = '0.500'
+
+    MSG_BLINK = 'blink'
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.blinker = None
         self._bg_factory = None
-        self._blink_rate = None
 
     def load_hook(self):
-        self.blinker = Pulse('blink')
+        self.blinker = Pulse(Cursor.MSG_BLINK)
         self.register_load(self.blinker)
 
     def load_style(self):
         self._bg_factory = self.parent.style_get('cursor-bg')
 
     def load_options(self):
-        self._blink_rate = Time.parse(self.parent.options_get('cursor-blink-rate'))
+        self.blinker.frequency = Time.parse(self.parent.options_get('cursor-blink-rate',
+                                                                    Cursor.BLINK_RATE))
 
     def refresh(self):
         self.w = max(self.parent.line_height // 10, 1)
@@ -101,15 +105,15 @@ class Cursor(GraphicalComponent):
         self.background = self._bg_factory(self.size)
 
     def activate_hook(self):
-        self.blinker.start(self._blink_rate)
+        self.blinker.start()
 
     def start(self):
         if not self.is_paused:
             self.show()
-            self.blinker.start(self._blink_rate)
+            self.blinker.start()
 
     def handle_message(self, sender, message, **params):
-        if message == 'blink':
+        if message == Cursor.MSG_BLINK:
             self.toggle_show()
         else:
             super().handle_message(self, message, **params)

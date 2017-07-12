@@ -17,35 +17,33 @@
 ###############################################################################
 
 from .component import TimingComponent
-from ..util import Time
 
 
 class Ticker(TimingComponent):
-    def __init__(self, message):
+    def __init__(self, message, frequency=None):
         super().__init__()
         self.message = message
+        self.frequency = frequency
 
     def trigger(self):
         self.send_message(self.message)
 
 
 class Pulse(Ticker):
-    def __init__(self, *args, period=Time(s=1)):
-        super().__init__(*args)
-        self.period = period
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def time_shift_hook(self, before, after):
-        num = after // self.period - before // self.period
+        num = after // self.frequency - before // self.frequency
         for _ in range(num):
             self.trigger()
 
 
 class Delay(Ticker):
-    def __init__(self, *args, delay=Time(s=1)):
-        super().__init__(*args)
-        self.delay = delay
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
     def time_shift_hook(self, before, after):
-        if after > self.delay:
+        if after > self.frequency:
             self.trigger()
             self.reset()
