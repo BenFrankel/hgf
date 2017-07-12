@@ -24,7 +24,7 @@ import pygame
 
 class GraphicalComponent(Rect, Component):
     def __init__(self, x=0, y=0, w=0, h=0, visible=True, hover=True, click=True, focus=False, opacity=1):
-        super().__init__(x, y, w, h)
+        super().__init__(x, y, w, h, pause=False)
 
         # General flags
         self.is_visible = visible
@@ -34,6 +34,10 @@ class GraphicalComponent(Rect, Component):
         self._opacity = opacity
         self.is_hovered = False
         self.is_focused = False
+
+        # Graphical hierarchy
+        self._graphical_children = []
+        self._z = 0
 
         # Surfaces
         if self.is_transparent:
@@ -90,18 +94,6 @@ class GraphicalComponent(Rect, Component):
 
     def track_hook(self): pass
 
-    def _reload_style(self):
-        super()._reload_style()
-        self.refresh()
-
-    def _reload_options(self):
-        super()._reload_options()
-        self.refresh()
-
-    def _load(self):
-        super()._load()
-        self.refresh()
-
     @property
     def is_transparent(self):
         return self._opacity == 0
@@ -126,6 +118,16 @@ class GraphicalComponent(Rect, Component):
             for rect in self._dirty_rects:
                 self._clean_dirty_rects(rect)
         self._is_dirty = other
+
+    @property
+    def z(self):
+        return self._z
+
+    @z.setter
+    def z(self, other):
+        self._z = other
+        if not self.is_root:
+            self.parent._child_changed_z(self)
 
     @property
     def colorkey(self):
@@ -171,19 +173,57 @@ class GraphicalComponent(Rect, Component):
     def abs_rect(self):
         return Rect(*self._abs_pos(), self.w, self.h)
 
+    def _recursive_refresh(self):
+        print('recursively refreshing', self)
+        for child in self._graphical_children:
+            if child.is_loaded:
+                child._recursive_refresh()
+        self.refresh()
+
+    def reload_style(self):
+        super().reload_style()
+        self._recursive_refresh()
+
+    def reload_options(self):
+        super().reload_options()
+        self._recursive_refresh()
+
+    def _child_changed_z(self, child):
+        self._graphical_children.remove(child)
+        for i, other in enumerate(self._graphical_children):
+            if other.z > child.z:
+                self._graphical_children.insert(i, child)
+        self._graphical_children.append(child)
+
+    def register(self, child):
+        super().register(child)
+        if isinstance(child, GraphicalComponent):
+            for i, other in enumerate(self._graphical_children):
+                if other.z > child.z:
+                    self._graphical_children.insert(i, child)
+                    break
+            self._graphical_children.append(child)
+
+    def unregister(self, child):
+        super().unregister(child)
+        try:
+            self._graphical_children.remove(child)
+        except ValueError:
+            pass
+
     def show(self):
         self.is_visible = True
         self.show_hook()
 
-    def _lose_focus_because_of_hiding(self):
+    def _recursive_lose_focus(self):
         if self.is_focused:
             self.lose_focus()
-        for child in self._children:
-            child._lose_focus_because_of_hiding()
+        for child in self._graphical_children:
+            child._recursive_lose_focus()
 
     def hide(self):
         self.is_visible = False
-        self._lose_focus_because_of_hiding()
+        self._recursive_lose_focus()
         self.hide_hook()
 
     def toggle_show(self):
@@ -232,7 +272,7 @@ class GraphicalComponent(Rect, Component):
 
     def _mouse_enter(self, start, end, buttons):
         self.mouse_enter_hook(start, end, buttons)
-        for child in self._children:
+        for child in self._graphical_children:
             if child.can_hover and not child.is_paused and child.collide_point(end):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
@@ -240,7 +280,7 @@ class GraphicalComponent(Rect, Component):
 
     def _mouse_exit(self, start, end, buttons):
         self.mouse_exit_hook(start, end, buttons)
-        for child in self._children:
+        for child in self._graphical_children:
             if child.can_hover and not child.is_paused and child.collide_point(start):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
@@ -248,7 +288,7 @@ class GraphicalComponent(Rect, Component):
 
     def _mouse_motion(self, start, end, buttons):
         self.mouse_motion_hook(start, end, buttons)
-        for child in self._children:
+        for child in self._graphical_children:
             if child.can_hover and not child.is_paused and child.collide_point(start) and child.collide_point(end):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
@@ -258,14 +298,14 @@ class GraphicalComponent(Rect, Component):
         self.mouse_down_hook(pos, button)
         if self.can_focus and not self.is_focused:
             self.take_focus()
-        for child in self._children[::-1]:
+        for child in self._graphical_children[::-1]:
             if child.can_click and not child.is_paused and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
                 child._mouse_down(rel_pos, button)
 
     def _mouse_up(self, pos, button):
         self.mouse_up_hook(pos, button)
-        for child in self._children:
+        for child in self._graphical_children:
             if child.can_click and not child.is_paused and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
                 child._mouse_up(rel_pos, button)
@@ -304,13 +344,13 @@ class GraphicalComponent(Rect, Component):
         return []
 
     def _redraw_area(self, rect):
-        children = self._children[:]
+        children = self._graphical_children[:]
         self._display.fill(self.colorkey, rect.as_pygame_rect())
         self._display.blit(self._background, rect.pos, rect.as_pygame_rect())
         for child in children:
             if child.is_visible:
                 if child.is_transparent:
-                    children.extend(child._children)
+                    children.extend(child._graphical_children)
                 else:
                     area = rect.intersect(child)
                     if area is not None:
@@ -320,7 +360,7 @@ class GraphicalComponent(Rect, Component):
 
     def _draw(self):
         if self.is_visible:
-            for child in self._children:
+            for child in self._graphical_children:
                 if not child.is_transparent and child.is_dirty and not self.is_dirty:
                     for rect in child._transition_rects():
                         self._add_dirty_rect(rect)
@@ -355,11 +395,12 @@ class GraphicalComponent(Rect, Component):
         if self.is_hovered and not pygame.mouse.get_focused():
             self.is_hovered = False
             self._mouse_exit(pos, pos, pygame.mouse.get_pressed())
-        for child in self._children:
+        # Recursively _track all GraphicalComponents
+        for child in self._graphical_children:
             if not child.is_paused:
                 child._track()
 
     def step(self):
         self._track()
-        self._tick()
+        self._recursive_tick_hook()
         self._draw()

@@ -16,23 +16,51 @@
 #                                                                             #
 ###############################################################################
 
-from .window import Window
-from .structure import StructuralComponent, Sequence, Hub
-from .text_entry import TextEntryBox, TextField
-from .menu import Button, Menu
-from .widget import SimpleWidget, Widget
-from .text import Text, TextBox
-from .image import Image
-from .component import GraphicalComponent
+from ..component import Component
+from ..util import Timer, CountdownTimer
 
 
-__all__ = [
-    'Window',
-    'StructuralComponent', 'Sequence', 'Hub',
-    'TextEntryBox', 'TextField',
-    'Button', 'Menu',
-    'SimpleWidget', 'Widget',
-    'Text', 'TextBox',
-    'Image',
-    'GraphicalComponent',
-]
+class TimingComponent(Component):
+    def __init__(self):
+        super().__init__()
+        self._duration = None
+        self._expiration_timer = CountdownTimer()
+
+        self._timer = Timer()
+
+    def time_shift_hook(self, before, after): pass
+
+    def trigger(self): pass
+
+    @property
+    def is_running(self):
+        return self._timer.is_running
+
+    def freeze_hook(self):
+        self._timer.pause()
+        self._expiration_timer.pause()
+
+    def unfreeze_hook(self):
+        self._timer.unpause()
+        self._expiration_timer.unpause()
+
+    def start(self, duration=None):
+        if not self.is_frozen:
+            self.unpause()
+            self._timer.start()
+            self._duration = duration
+            if duration is not None:
+                self._expiration_timer.start(duration)
+
+    def reset(self):
+        if not self.is_frozen:
+            self._timer.reset()
+            self._expiration_timer.reset()
+
+    def tick_hook(self):
+        if self._timer.is_running:
+            if self._duration is not None and self._expiration_timer.is_paused:
+                self.time_shift_hook(self._timer._last_time, self._duration)
+                self.reset()
+            else:
+                self.time_shift_hook(self._timer._last_time, self._timer.time)

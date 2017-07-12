@@ -16,23 +16,36 @@
 #                                                                             #
 ###############################################################################
 
-from .window import Window
-from .structure import StructuralComponent, Sequence, Hub
-from .text_entry import TextEntryBox, TextField
-from .menu import Button, Menu
-from .widget import SimpleWidget, Widget
-from .text import Text, TextBox
-from .image import Image
-from .component import GraphicalComponent
+from .component import TimingComponent
+from ..util import Time
 
 
-__all__ = [
-    'Window',
-    'StructuralComponent', 'Sequence', 'Hub',
-    'TextEntryBox', 'TextField',
-    'Button', 'Menu',
-    'SimpleWidget', 'Widget',
-    'Text', 'TextBox',
-    'Image',
-    'GraphicalComponent',
-]
+class Ticker(TimingComponent):
+    def __init__(self, message):
+        super().__init__()
+        self.message = message
+
+    def trigger(self):
+        self.send_message(self.message)
+
+
+class Pulse(Ticker):
+    def __init__(self, *args, period=Time(s=1)):
+        super().__init__(*args)
+        self.period = period
+
+    def time_shift_hook(self, before, after):
+        num = after // self.period - before // self.period
+        for _ in range(num):
+            self.trigger()
+
+
+class Delay(Ticker):
+    def __init__(self, *args, delay=Time(s=1)):
+        super().__init__(*args)
+        self.delay = delay
+
+    def time_shift_hook(self, before, after):
+        if after > self.delay:
+            self.trigger()
+            self.reset()

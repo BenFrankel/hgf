@@ -16,23 +16,22 @@
 #                                                                             #
 ###############################################################################
 
-from .window import Window
-from .structure import StructuralComponent, Sequence, Hub
-from .text_entry import TextEntryBox, TextField
-from .menu import Button, Menu
-from .widget import SimpleWidget, Widget
-from .text import Text, TextBox
-from .image import Image
-from .component import GraphicalComponent
+from .component import TimingComponent
 
 
-__all__ = [
-    'Window',
-    'StructuralComponent', 'Sequence', 'Hub',
-    'TextEntryBox', 'TextField',
-    'Button', 'Menu',
-    'SimpleWidget', 'Widget',
-    'Text', 'TextBox',
-    'Image',
-    'GraphicalComponent',
-]
+class Gradient(TimingComponent):
+    def __init__(self, message, start, end):
+        super().__init__()
+        self.message = message
+
+        self.start = start
+        self.end = end
+        self._gap = start - end
+        self.value = start
+
+    def time_shift_hook(self, before, after):
+        if after <= self._duration:
+            self.value = self.start + self._gap * after / self._duration
+        elif after > self._duration:
+            self.value = self.end
+            self.send_message(self.message)

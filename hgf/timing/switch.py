@@ -16,23 +16,22 @@
 #                                                                             #
 ###############################################################################
 
-from .window import Window
-from .structure import StructuralComponent, Sequence, Hub
-from .text_entry import TextEntryBox, TextField
-from .menu import Button, Menu
-from .widget import SimpleWidget, Widget
-from .text import Text, TextBox
-from .image import Image
-from .component import GraphicalComponent
+from .ticker import Ticker, Pulse
 
 
-__all__ = [
-    'Window',
-    'StructuralComponent', 'Sequence', 'Hub',
-    'TextEntryBox', 'TextField',
-    'Button', 'Menu',
-    'SimpleWidget', 'Widget',
-    'Text', 'TextBox',
-    'Image',
-    'GraphicalComponent',
-]
+class Switch(Ticker):
+    def __init__(self, *args, state=False):
+        super().__init__(*args)
+        self.state = state
+
+    def trigger(self):
+        self.send_message(self.message, state=self.state)
+
+
+class Blink(Switch, Pulse):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def trigger(self):
+        self.state = not self.state
+        super().trigger()

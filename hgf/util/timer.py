@@ -24,6 +24,10 @@ import functools
 @functools.total_ordering
 class Time:
     @staticmethod
+    def now():
+        return Time(s=time.monotonic())
+
+    @staticmethod
     def parse(text):
         result = Time()
         chunks = text.split(':', 2)
@@ -52,8 +56,6 @@ class Time:
             pass
 
         return result
-
-
 
     def __init__(self, d=0, h=0, m=0, s=0, ms=0):
         self._d = 0
@@ -148,10 +150,34 @@ class Time:
         return self.ms + (1000 * self.s) + (60000 * self.m) + (3600000 * self.h) + (86400000 * self.d)
 
     def __add__(self, other):
-        return Time(self.d + other.d, self.h + other.h, self.m + other.m, self.s + other.s, self.ms + other.ms)
+        return Time(self.d + other.d,
+                    self.h + other.h,
+                    self.m + other.m,
+                    self.s + other.s,
+                    self.ms + other.ms)
 
     def __sub__(self, other):
-        return Time(self.d - other.d, self.h - other.h, self.m - other.m, self.s - other.s, self.ms - other.ms)
+        return Time(self.d - other.d,
+                    self.h - other.h,
+                    self.m - other.m,
+                    self.s - other.s,
+                    self.ms - other.ms)
+
+    def __mul__(self, other):
+        return Time(self.d * other,
+                    self.h * other,
+                    self.m * other,
+                    self.s * other,
+                    self.ms * other)
+
+    def __floordiv__(self, other):
+        try:
+            return self.in_ms() // other.in_ms()
+        except KeyError:
+            return Time(ms=self.in_ms() // other)
+
+    def __mod__(self, other):
+        return Time(ms=self.in_ms() % other.in_ms())
 
     def __lt__(self, other):
         return (self.d, self.h, self.m, self.s, self.ms) < (other.d, other.h, other.m, other.s, other.ms)
@@ -175,9 +201,15 @@ class Time:
 
 class Timer:
     def __init__(self):
-        self.last_time = None
+        self._last_time = None
         self._time = Time()
         self._is_paused = True
+
+    @property
+    def time_paused(self):
+        if self.is_paused:
+            return Time.now() - self._last_time
+        return Time()
 
     @property
     def time(self):
@@ -211,25 +243,25 @@ class Timer:
 
     def start(self, start_time=Time()):
         self.time = start_time
-        self.last_time = Time(s=time.monotonic())
+        self._last_time = Time.now()
         self._is_paused = False
 
     def update(self):
         if not self._is_paused:
-            current_time = Time(s=time.monotonic())
-            self._time += current_time - self.last_time
-            self.last_time = current_time
+            current_time = Time.now()
+            self._time += current_time - self._last_time
+            self._last_time = current_time
 
     def pause(self):
         self.update()
         self._is_paused = True
 
     def unpause(self):
-        self.last_time = Time(s=time.monotonic())
+        self._last_time = Time.now()
         self._is_paused = False
 
     def reset(self):
-        self.last_time = None
+        self._last_time = None
         self.time = Time()
         self._is_paused = True
 
@@ -240,8 +272,8 @@ class Timer:
 class CountdownTimer(Timer):
     def update(self):
         if not self._is_paused:
-            current_time = Time(s=time.monotonic())
-            self._time -= current_time - self.last_time
-            self.last_time = current_time
+            current_time = Time.now()
+            self._time -= current_time - self._last_time
+            self._last_time = current_time
             if self._time < Time():
                 self.reset()

@@ -19,14 +19,14 @@
 from .component import GraphicalComponent
 
 
-class Switch(GraphicalComponent):
+class StructuralComponent(GraphicalComponent):
     def __init__(self, opacity=0, **kwargs):
         super().__init__(opacity=opacity, **kwargs)
         self.location = None
 
     def load_hook(self):
         if self.location is not None:
-            self.location._load()
+            self.location.load()
 
     def enter_node(self, child):
         if self.location is not child:
@@ -34,13 +34,13 @@ class Switch(GraphicalComponent):
                 self.location.deactivate()
             self.location = child
             if self.is_loaded and not child.is_loaded:
-                child._load()
+                child.prepare()
             if child.can_focus:
                 child.take_focus()
             child.activate()
 
 
-class Sequence(Switch):
+class Sequence(StructuralComponent):
     MSG_NEXT = 'next'
     MSG_PREV = 'prev'
 
@@ -67,7 +67,7 @@ class Sequence(Switch):
         elif message == Sequence.MSG_PREV and self.loc_index is not None and not self.at_head:
             self.enter_index(self.loc_index - 1)
         else:
-            self.send_message(message, **params)
+            super().handle_message(self, message, **params)
 
     def register_index(self, index, child):
         self.loc_list.insert(index, child)
@@ -84,7 +84,7 @@ class Sequence(Switch):
         self.register_index(len(self.loc_list), tail)
 
 
-class Hub(Switch):
+class Hub(StructuralComponent):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.loc_center = None
@@ -111,4 +111,4 @@ class Hub(Switch):
         elif message in self.loc_nodes:
             self.enter_node(self.loc_nodes[message])
         else:
-            self.send_message(message, **params)
+            super().handle_message(self, message, **params)

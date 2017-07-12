@@ -90,22 +90,28 @@ class TextBox(GraphicalComponent):
         self.font = None
         self.fgcolor = None
 
-        self.line_height = None
         self.text = text
+
+        self.line_height = None
         self.lines = []
+        self._num_active_lines = 1
 
         self._bg_factory = None
+
+    def prepare_hook(self):
+        self.lines = [Text('', parent_style=True) for _ in range((self.h - 2 * self.margin) // self.line_height)]
+        self.register_prepare_all(self.lines)
 
     def load_style(self):
         self.font = self.style_get('font')
         self.font.size = self.options_get('font-size')
         self.line_height = self.font.get_sized_height()
         self.fgcolor = self.style_get('fg-color')
-        self.set_text(self.text)
         self._bg_factory = self.style_get('background')
 
     def refresh(self):
         self.background = self._bg_factory(self.size, self.margin)
+        self.set_text(self.text)
         for line in self.lines:
             line.font = self.font
             line.fgcolor = self.fgcolor
@@ -163,19 +169,13 @@ class TextBox(GraphicalComponent):
 
     def set_text(self, text):
         lines = self._wrap(text)
-        if len(lines) > (self.h - 2 * self.margin) // self.line_height:
+        if len(lines) > len(self.lines):
             return False
-        while len(self.lines) > len(lines):
-            self.unregister(self.lines[-1])
-            del self.lines[-1]
-        while len(lines) > len(self.lines):
-            self.lines.append(Text(font=self.font,
-                                   fontsize=self.font.size,
-                                   fgcolor=self.fgcolor,
-                                   parent_style=True))
-            self.register_load(self.lines[-1])
-        for old_line, line in zip(self.lines, lines):
-            old_line.text = line
+        self._num_active_lines = len(lines)
+        for old_line, new_line_text in zip(self.lines, lines):
+            old_line.text = new_line_text
+        for old_line in self.lines[len(lines):]:
+            old_line.text = ''
         self.text = text
         return True
 

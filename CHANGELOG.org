@@ -6,30 +6,38 @@
 
 * Version 0.2.0
 
-** New StructuralComponents [3/7]
+** New Graphical Components [5/8]
 
 - [X] TextBox
 - [X] TextEntryBox
 - [X] TextField
-- [ ] Widget (old Widget renamed to SimpleWidget)
+- [X] Widget (old Widget renamed to SimpleWidget)
 - [ ] Scrollbar
 - [ ] Frame
 - [ ] TextFrame
 
-** New Components [0/2]
+** New Timing Components [7/7]
 
-- [ ] Pulse
-- [ ] Delay
+- [X] TimingComponent
+- [X] Ticker
+- [X] Pulse
+- [X] Delay
+- [X] Gradient
+- [X] Switch
+- [X] Blink
 
-** Refactoring [2/2]
+** Refactoring [4/4]
 
 - [X] Hook functions
-- [X] Widget renamed to SimpleWidget
+- [X] Widget -> SimpleWidget
+- [X] Component -> GraphicalComponent
+- [X] Switch -> StructuralComponent
 
-** Restructuring [2/2]
+** Restructuring [3/3]
 
 - [X] Explicit load step
 - [X] ~appdata/<appname>/dir.json~ changed to ~appdata/<appname>.json~
+- [X] Method to recursively freeze a subtree (pausing timers & time-related tasks)
 
 ** Convenience [3/4]
 

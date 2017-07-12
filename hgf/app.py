@@ -270,11 +270,11 @@ class App(Window):
 
     def load_style_from(self, filename):
         self._config.load_style_from(filename)
-        self._reload_style()
+        self._recursive_load_style()
 
     def load_options_from(self, filename):
         self._config.load_options_from(filename)
-        self._reload_options()
+        self._recursive_load_options()
 
     def load_controls_from(self, filename):
         self._config.load_controls_from(filename)
@@ -327,7 +327,7 @@ class AppManager:
         if not self._is_loaded:
             raise RuntimeError('Cannot launch app \'{}\' without loading its manager first'.format(self.name))
         app = self.factory(self)
-        app._load()
+        app.prepare()
         return app
 
     def get_font(self, name):

@@ -22,7 +22,7 @@ from .app import\
 
 from .gui import\
     Window,\
-    Switch, Sequence, Hub,\
+    StructuralComponent, Sequence, Hub,\
     TextEntryBox, TextField,\
     Button, Menu,\
     SimpleWidget, Widget,\
@@ -39,7 +39,7 @@ __all__ = [
     'AppManager', 'App',
 
     'Window',
-    'Switch', 'Sequence', 'Hub',
+    'StructuralComponent', 'Sequence', 'Hub',
     'TextEntryBox', 'TextField',
     'Button', 'Menu',
     'SimpleWidget', 'Widget',

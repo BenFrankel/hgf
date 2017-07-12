@@ -19,7 +19,9 @@
 from .widget import SimpleWidget, Widget
 from .text import TextBox
 from .component import GraphicalComponent
-from ..util import Time, CountdownTimer
+
+from ..timing import Pulse
+from ..util import Time
 
 import pygame
 import pyperclip
@@ -79,9 +81,13 @@ def _edit_region(text, start, end, unicode, key, mod):
 class Cursor(GraphicalComponent):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.timer = CountdownTimer()
+        self.blinker = None
         self._bg_factory = None
         self._blink_rate = None
+
+    def load_hook(self):
+        self.blinker = Pulse('blink')
+        self.register_load(self.blinker)
 
     def load_style(self):
         self._bg_factory = self.parent.style_get('cursor-bg')
@@ -90,32 +96,28 @@ class Cursor(GraphicalComponent):
         self._blink_rate = Time.parse(self.parent.options_get('cursor-blink-rate'))
 
     def refresh(self):
+        self.w = max(self.parent.line_height // 10, 1)
+        self.h = self.parent.line_height
         self.background = self._bg_factory(self.size)
 
-    def pause_hook(self):
-        self.timer.pause()
-
-    def unpause_hook(self):
-        self.timer.unpause()
-
     def activate_hook(self):
-        self.timer.start(self._blink_rate)
+        self.blinker.start(self._blink_rate)
 
     def start(self):
         if not self.is_paused:
             self.show()
-            self.timer.start(self._blink_rate)
+            self.blinker.start(self._blink_rate)
 
-    def tick_hook(self):
-        if self.timer.is_paused:
+    def handle_message(self, sender, message, **params):
+        if message == 'blink':
             self.toggle_show()
-            self.timer.start(self._blink_rate)
+        else:
+            super().handle_message(self, message, **params)
 
 
 class Highlight(GraphicalComponent):
-    def __init__(self, line_height, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.line_height = line_height
         self.start = (0, 0)
         self.end = (0, 0)
         self.bgcolor = None
@@ -124,6 +126,7 @@ class Highlight(GraphicalComponent):
         self.bgcolor = self.parent.style_get('highlight-bg-color')
 
     def refresh(self):
+        lh = self.parent.line_height
         surf = pygame.Surface(self.size, pygame.SRCALPHA)
         if self.start[1] == self.end[1]:
             pygame.draw.rect(surf,
@@ -131,28 +134,28 @@ class Highlight(GraphicalComponent):
                              pygame.Rect(self.start[0],
                                          self.start[1],
                                          self.end[0] - self.start[0],
-                                         self.line_height))
+                                         lh))
         else:
             pygame.draw.rect(surf,
                              self.bgcolor,
                              pygame.Rect(self.start[0],
                                          self.start[1],
                                          self.w - self.start[0],
-                                         self.line_height))
-            inbetween = (self.end[1] - self.start[1]) // self.line_height - 1
+                                         lh))
+            inbetween = (self.end[1] - self.start[1]) // lh - 1
             if inbetween > 0:
                 pygame.draw.rect(surf,
                                  self.bgcolor,
                                  pygame.Rect(0,
-                                             self.start[1] + self.line_height,
+                                             self.start[1] + lh,
                                              self.w,
-                                             self.line_height * inbetween))
+                                             lh * inbetween))
             pygame.draw.rect(surf,
                              self.bgcolor,
                              pygame.Rect(0,
                                          self.end[1],
                                          self.end[0],
-                                         self.line_height))
+                                         lh))
         self.background = surf
 
 
@@ -224,24 +227,18 @@ class TextEntryBox(Widget, TextBox):
         self._hl_cursor_place = None
 
     def load_hook(self):
+        super().load_hook()
         self.cursor = Cursor()
         self.cursor.z = 10
         self.cursor.deactivate()
         self.register_load(self.cursor)
 
-        self.highlight = Highlight(self.line_height,
-                                   w=self.w - 2 * self.margin,
+        self.highlight = Highlight(w=self.w - 2 * self.margin,
                                    h=self.h - 2 * self.margin)
         self.highlight.z = -10
         self.highlight.pos = self.margin, self.margin
         self.highlight.deactivate()
         self.register_load(self.highlight)
-
-    def refresh(self):
-        super().refresh()
-        self.cursor.w = max(self.line_height // 10, 1)
-        self.cursor.h = self.line_height
-        self.cursor.refresh()
 
     def take_focus_hook(self):
         self.cursor.activate()
@@ -284,14 +281,17 @@ class TextEntryBox(Widget, TextBox):
                 self._hl_cursor_place = None
             else:
                 self._navigate(key, mod)
+
             if not mod & pygame.KMOD_SHIFT:
                 self._hl_cursor_place = None
-
             elif self._hl_cursor_place is None:
                 self._hl_cursor_place = CursorPlacement()
                 self._place_cursor_by_index(self._hl_cursor_place, prev_index)
-            elif self._hl_cursor_place.index == self._cursor_place.index:
-                self._hl_cursor_place = None
+            try:
+                if self._hl_cursor_place.index == self._cursor_place.index:
+                    self._hl_cursor_place = None
+            except AttributeError:
+                pass
         elif key in TextEntryBox.EDIT_KEYS or (unicode and (unicode.isprintable() or unicode.isspace())):
             if self._hl_cursor_place is None:
                 index, text = _edit(self.text, self._cursor_place.index, unicode, key, mod)
@@ -311,7 +311,7 @@ class TextEntryBox(Widget, TextBox):
 
     def handle_message(self, sender, message, **params):
         if message == TextEntryBox.MSG_UNDO:
-            pass
+            pass  # TODO: Undo
         elif message == TextEntryBox.MSG_CUT:
             self.handle_message(sender, TextEntryBox.MSG_COPY, **params)
             self._handle_key(None, pygame.K_DELETE, 0)
@@ -328,13 +328,13 @@ class TextEntryBox(Widget, TextBox):
             self._place_cursor_by_index(self._hl_cursor_place, 0)
             self._place_cursor_by_index(self._cursor_place, len(self.text))
         else:
-            self.send_message(message, **params)
+            super().handle_message(self, message, **params)
 
     def _navigate(self, key, mod):
         cursor = self._cursor_place
 
         if key == pygame.K_DOWN:
-            if cursor.row < len(self.lines) - 1:
+            if cursor.row < self._num_active_lines - 1:
                 self._place_cursor_by_pos(cursor, (cursor.raw_x, cursor.raw_y + self.line_height))
         elif key == pygame.K_UP:
             if cursor.row > 0:
@@ -366,7 +366,7 @@ class TextEntryBox(Widget, TextBox):
         cursor = self._cursor_place
 
         if key == pygame.K_DOWN:
-            if cursor.row < len(self.lines) - 1:
+            if cursor.row < self._num_active_lines - 1:
                 self._place_cursor_by_pos(cursor, (cursor.raw_x, cursor.raw_y + self.line_height))
         elif key == pygame.K_UP:
             if cursor.row > 0:
@@ -395,7 +395,7 @@ class TextEntryBox(Widget, TextBox):
         cursor.raw_x, cursor.raw_y = pos
 
         # Set row to `rel_y // line_height`, bounded between `0` and `len(lines) - 1`
-        cursor.row = min(max((cursor.raw_y - self.margin) // self.line_height, 0), len(self.lines) - 1)
+        cursor.row = min(max((cursor.raw_y - self.margin) // self.line_height, 0), self._num_active_lines - 1)
 
         # Binary search to find which column was clicked on
         col = 0
@@ -418,15 +418,15 @@ class TextEntryBox(Widget, TextBox):
         cursor.index = index
 
         length = 0
-        for row, line in enumerate(self.lines):
+        for row, line in enumerate(self.lines[:self._num_active_lines]):
             length += len(line.text)
             if length >= index:
                 length -= len(line.text)
                 cursor.row = row
                 break
-            length += (row < len(self.lines) - 1 and self.text[length].isspace())
+            length += (row < self._num_active_lines - 1 and self.text[length].isspace())
         else:
-            cursor.row = len(self.lines) - 1
+            cursor.row = self._num_active_lines - 1
         cursor.col = index - length
 
         cursor.raw_x, cursor.raw_y = cursor.x, cursor.y = self._grid_pos(cursor.row, cursor.col)

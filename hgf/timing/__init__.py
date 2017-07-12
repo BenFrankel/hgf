@@ -16,23 +16,13 @@
 #                                                                             #
 ###############################################################################
 
-from .window import Window
-from .structure import StructuralComponent, Sequence, Hub
-from .text_entry import TextEntryBox, TextField
-from .menu import Button, Menu
-from .widget import SimpleWidget, Widget
-from .text import Text, TextBox
-from .image import Image
-from .component import GraphicalComponent
+from .component import TimingComponent
+from .ticker import Pulse, Delay
+from .gradient import Gradient
 
 
 __all__ = [
-    'Window',
-    'StructuralComponent', 'Sequence', 'Hub',
-    'TextEntryBox', 'TextField',
-    'Button', 'Menu',
-    'SimpleWidget', 'Widget',
-    'Text', 'TextBox',
-    'Image',
-    'GraphicalComponent',
+    'TimingComponent',
+    'Pulse', 'Delay',
+    'Gradient',
 ]
