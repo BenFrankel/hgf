@@ -17,40 +17,55 @@
 ###############################################################################
 
 from .button import Button
+from .text import Text
 from .component import GraphicalComponent
 from ..util import Rect
 
 
-# TODO: self.justify = 'left' or 'center' or 'right', default to 'center'
 class Menu(GraphicalComponent):
-    def __init__(self, **kwargs):
+    def __init__(self, justify='center', title='Menu', **kwargs):
         super().__init__(**kwargs)
         self.type = 'menu'
+
+        self.title = title
+        self._title_text = None
 
         self._button_info = []
         self.buttons = []
 
-        self.button_gap = self.h // 50
-        self.button_w = self.w // 5
-        self.button_h = self.h // 10
+        self.justify = justify
+        self._button_gap = self.h // 50
+        self._button_w = self.w // 5
+        self._button_h = self.h // 10
 
     def load_hook(self):
         for button_info in self._button_info:
             self.buttons.append(Button(*button_info,
-                                       w=self.button_w,
-                                       h=self.button_h))
+                                       w=self._button_w,
+                                       h=self._button_h))
             self.register_load(self.buttons[-1])
         del self._button_info
+        self._title_text = Text(self.title, fontsize=self._button_h, fgcolor=(0, 60, 100))
+        self.register_load(self._title_text)
 
     def add_button(self, name, message):
         self._button_info.append((name, message))
 
     def tick_hook(self):
-        buttons_rect = Rect(w=self.button_w,
-                            h=len(self.buttons) * (self.button_h + self.button_gap) - self.button_gap)
-        button_x = self.midx - buttons_rect.midx
+        buttons_rect = Rect(w=self._button_w,
+                            h=len(self.buttons) * (self._button_h + self._button_gap) - self._button_gap)
+        if self.justify == 'left':
+            button_x = self._button_gap
+            self._title_text.x = self._button_gap
+        elif self.justify == 'right':
+            button_x = self.right - self._button_w - self._button_gap
+            self._title_text.right = self.w - self._button_gap
+        else:
+            button_x = self.midx - buttons_rect.midx
+            self._title_text.midx = self.midx
         button_y = self.midy - buttons_rect.midy
+        self._title_text.midy = button_y // 2
         for button in self.buttons:
             button.x = button_x
             button.y = button_y
-            button_y += button.h + self.button_gap
+            button_y += button.h + self._button_gap
