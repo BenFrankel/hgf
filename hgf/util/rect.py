@@ -195,6 +195,63 @@ class Rect:
     def bottomright(self, other):
         self.right, self.bottom = other
 
+    @property
+    def relbottom(self):
+        return self.h
+
+    @property
+    def relright(self):
+        return self.w
+
+    @property
+    def reltop(self):
+        return 0
+
+    relleft = reltop
+
+    @property
+    def relpos(self):
+        return 0, 0
+
+    reltopleft = relpos
+
+    @property
+    def relmidx(self):
+        return self.w // 2
+
+    @property
+    def relmidy(self):
+        return self.h // 2
+
+    @property
+    def relmidtop(self):
+        return self.w // 2, 0
+
+    @property
+    def reltopright(self):
+        return self.w, 0
+
+    @property
+    def relmidleft(self):
+        return 0, self.h // 2
+
+    @property
+    def relcenter(self):
+        return self.w // 2, self.h // 2
+
+    @property
+    def relbottomleft(self):
+        return 0, self.h
+
+    @property
+    def relmidbottom(self):
+        return self.w // 2, self.h
+
+    @property
+    def relbottomright(self):
+        return self.w, self.h
+
+    @property
     def area(self):
         return self.w * self.h
 

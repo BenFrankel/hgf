@@ -1,17 +1,26 @@
-#+TITLE: hgf Changelog & Roadmap
+#+TITLE: hgf Roadmap & Changelog
 #+AUTHOR: Ben Frankel
 #+EMAIL: ben.frankel7@gmail.com
 #+STARTUP: showall
 
 
-* Version 0.2.0
+* Version 0.3.0 (Future)
 
-** New Graphical Components [5/8]
+** Restructuring [0/1]
+
+- [ ] Overhaul of the style / options system to use CSS-style selectors (improve flexibility, simplicity, and familiarity of the system)
+
+
+* Version 0.2.0 (In Progress)
+
+** New Graphical Components [6/9]
 
 - [X] TextBox
 - [X] TextEntryBox
 - [X] TextField
 - [X] Widget (old Widget renamed to SimpleWidget)
+- [X] DragWidget
+- [X] SlideWidget
 - [ ] Scrollbar
 - [ ] Frame
 - [ ] TextFrame
@@ -33,19 +42,24 @@
 - [X] Component -> GraphicalComponent
 - [X] Switch -> StructuralComponent
 
-** Restructuring [3/3]
+** Structural Changes [3/3]
 
 - [X] Explicit load step
 - [X] ~appdata/<appname>/dir.json~ changed to ~appdata/<appname>.json~
-- [X] Method to recursively freeze a subtree (pausing timers & time-related tasks)
+- [X] Method to recursively freeze a subtree (pausing timers & other time-tracking tasks)
 
-** Convenience [3/4]
+** Convenience [4/5]
 
 - [X] Activate / deactivate
 - [X] Toggle show / pause
-- [X] Simultaneously register and load (~register_load~ and ~register_load_all~)
-- [ ] Default config files for built-in configurables
+- [X] Simultaneously register and load (~register_load~, ~register_load_all~, ~register_prepare~, ~register_prepare_all~)
+- [X] Event loop is handled implicitly on application launch
+- [ ] Default values for all built-in configurables
 
 ** Miscellaneous [0/1]
 
 - [ ] Style, options and controls can be dynamically reloaded
+
+** Bugs Fixed [1/1]
+
+- [X] Various; was not keeping track

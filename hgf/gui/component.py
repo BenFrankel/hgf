@@ -326,8 +326,8 @@ class GraphicalComponent(Rect, Component):
 
     def _add_dirty_rect(self, rect):
         if not self.is_dirty and rect not in self._dirty_rects:
-            area = rect.area()
-            if area + self._dirty_area > self.area():
+            area = rect.area
+            if area + self._dirty_area > self.area:
                 self.is_dirty = True
                 self._dirty_area += area
             else:
@@ -337,7 +337,7 @@ class GraphicalComponent(Rect, Component):
 
     def _clean_dirty_rects(self, rect):
         self._dirty_rects.remove(rect)
-        self._dirty_area -= rect.area()
+        self._dirty_area -= rect.area
         if not self.is_root:
             self.parent._clean_dirty_rects(Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h))
 
@@ -347,7 +347,7 @@ class GraphicalComponent(Rect, Component):
             comb = Rect(min(self.x, old.x), min(self.y, old.y))
             comb.w = max(self.right, old.right) - comb.x
             comb.h = max(self.bottom, old.bottom) - comb.y
-            if self.area() + old.area() > comb.area():
+            if self.area + old.area > comb.area:
                 return [comb]
             else:
                 return [self._old_rect, self.copy_rect()]
