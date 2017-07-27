@@ -85,6 +85,8 @@ class Sequence(StructuralComponent):
 
 
 class Hub(StructuralComponent):
+    MSG_RETURN_TO_CENTER = 'exit'
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.loc_center = None
@@ -106,7 +108,7 @@ class Hub(StructuralComponent):
         self.register(center)
 
     def handle_message(self, sender, message, **params):
-        if message == 'exit' and self.loc_center is not None and self.location is not self.loc_center:
+        if message == Hub.MSG_RETURN_TO_CENTER and self.location is not self.loc_center:
             self.enter_node(self.loc_center)
         elif message in self.loc_nodes:
             self.enter_node(self.loc_nodes[message])

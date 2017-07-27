@@ -19,6 +19,7 @@
 
 class Component:
     def __init__(self, pause=False):
+
         # Configuration
         self.type = None
         self._context = None
@@ -28,7 +29,7 @@ class Component:
         self.parent = None
         self._children = []
 
-        # Flags
+        # State flags
         self.is_frozen = pause
         self.is_paused = pause
         self.is_loaded = False
@@ -104,36 +105,31 @@ class Component:
             raise
 
     def _recursive_load_style(self):
-        print('recursively loading style for', self)
         for child in self._children:
             if child.is_loaded:
                 child._recursive_load_style()
         self.load_style()
 
     def _recursive_load_options(self):
-        print('recursively loading options for', self)
         for child in self._children:
             if child.is_loaded:
                 child._recursive_load_options()
         self.load_options()
 
     def load(self):
-        print('loading', self)
         self.is_loaded = True
         self.load_hook()
 
     def _recursive_prepare_hook(self):
-        print('recursively calling prepare hook on', self)
         for child in self._children:
             if child.is_loaded:
                 child._recursive_prepare_hook()
         self.prepare_hook()
 
-    # For compatibility with GraphicalComponent's loading sequence
+    # Compatibility with GraphicalComponent
     def _recursive_refresh(self): pass
 
     def prepare(self):
-        print('preparing', self)
         self.load()
         self._recursive_load_style()
         self._recursive_load_options()

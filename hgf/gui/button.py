@@ -57,6 +57,7 @@ class Button(SimpleWidget):
             self.label.text = other
 
     def mouse_state_change_hook(self, before, after):
+        self.is_stale = True
         if before == SimpleWidget.PRESS and after == SimpleWidget.HOVER:
             self.send_message(self.message)
 

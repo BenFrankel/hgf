@@ -36,7 +36,7 @@ class Text(GraphicalComponent):
             self._font = self.style_get('font')
 
     def refresh(self):
-        self.background = self.font.render(self.text, fgcolor=self.fgcolor, size=self.fontsize)[0]
+        self.background = self._font.render(self.text, fgcolor=self.fgcolor, size=self.fontsize)[0]
 
     @property
     def text(self):
@@ -46,7 +46,8 @@ class Text(GraphicalComponent):
     def text(self, other):
         if self._text != other:
             self._text = other
-            self.refresh()
+            self.size = self.get_rect().size
+            self.is_stale = True
 
     @property
     def font(self):
@@ -56,7 +57,8 @@ class Text(GraphicalComponent):
     def font(self, other):
         if self._font != other:
             self._font = other
-            self.refresh()
+            self.size = self.get_rect().size
+            self.is_stale = True
 
     @property
     def fontsize(self):
@@ -66,13 +68,14 @@ class Text(GraphicalComponent):
     def fontsize(self, other):
         if self._fontsize != other:
             self._fontsize = other
-            self.refresh()
+            self.size = self.get_rect().size
+            self.is_stale = True
 
     def get_metrics(self):
-        return self.font.get_metrics(self.text, self.fontsize)
+        return self._font.get_metrics(self.text, self.fontsize)
 
     def get_rect(self, text=None):
-        return self.font.get_rect(self.text if text is None else text, size=self.fontsize)
+        return self._font.get_rect(self.text if text is None else text, size=self.fontsize)
 
     def __repr__(self):
         return 'Text(\'{}\')'.format(self.text)

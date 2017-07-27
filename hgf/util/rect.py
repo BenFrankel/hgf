@@ -216,7 +216,10 @@ class Rect:
         return pygame.Rect(self.x, self.y, self.w, self.h)
 
     def __eq__(self, other):
-        return self.x == other.x and self.y == other.y and self.w == other.w and self.h == other.h
+        try:
+            return self.x == other.x and self.y == other.y and self.w == other.w and self.h == other.h
+        except AttributeError:
+            return False
 
     def __str__(self):
         return '{}({}, {}, {}, {})'.format(self.__class__.__name__, self.x, self.y, self.w, self.h)

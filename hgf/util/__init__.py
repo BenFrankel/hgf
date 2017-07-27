@@ -16,14 +16,14 @@
 #                                                                             #
 ###############################################################################
 
-from . import keys
+from . import keyboard
 
 from .timer import Time, Timer, CountdownTimer
 from .rect import Rect
 
 
 __all__ = [
-    'keys',
+    'keyboard.py',
     
     'Time', 'Timer', 'CountdownTimer',
     'Rect',

@@ -1,4 +1,4 @@
-#+TITLE: hgf Roadmap
+#+TITLE: hgf Changelog & Roadmap
 #+AUTHOR: Ben Frankel
 #+EMAIL: ben.frankel7@gmail.com
 #+STARTUP: showall

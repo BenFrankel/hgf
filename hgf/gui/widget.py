@@ -19,7 +19,7 @@
 from .component import GraphicalComponent
 
 from ..timing import Delay, Pulse
-from ..util import Time
+from ..util import Time, keyboard
 
 import pygame
 
@@ -47,7 +47,6 @@ class SimpleWidget(GraphicalComponent):
             before = self._mouse_state
             self._mouse_state = other
             self.mouse_state_change_hook(before, other)
-            self.refresh()
 
     def pause_hook(self):
         super().pause_hook()
@@ -104,7 +103,7 @@ class Widget(SimpleWidget):
 
     # Default values
     KEY_REPEAT_DELAY = '0.450'
-    KEY_REPEAT_RATE = '0.015'
+    KEY_REPEAT_RATE = '0.050'
     LONG_HOVER_DELAY = '0.450'
     MULTIPLE_CLICK_DELAY = '0.250'
 
@@ -112,7 +111,6 @@ class Widget(SimpleWidget):
         super().__init__(**kwargs)
         # Key repeat when held down
         self._key_repeat = key_repeat
-        self._key_repeat_active = False
         self._key_repeat_ticker = None
         self._key_repeat_pulse = None
         self._last_key = None
@@ -176,18 +174,21 @@ class Widget(SimpleWidget):
 
     def lose_focus_hook(self):
         super().lose_focus_hook()
-        self._key_repeat_active = False
         self._key_repeat_ticker.reset()
 
     def key_down_hook(self, unicode, key, mod):
         super().key_down_hook(unicode, key, mod)
-        self._key_repeat_pulse.reset()
-        self._key_repeat_ticker.start()
-        self._last_key = (unicode, key, mod)
+        if self._last_key != (unicode, key) and key not in keyboard.command_keys:
+            self._last_key = (unicode, key)
+            self._key_repeat_ticker.start()
+            self._key_repeat_pulse.reset()
 
     def key_up_hook(self, key, mod):
         super().key_up_hook(key, mod)
-        self._key_repeat_pulse.reset()
+        if self._last_key is not None and key == self._last_key[1]:
+            self._last_key = None
+            self._key_repeat_ticker.reset()
+            self._key_repeat_pulse.reset()
 
     def mouse_state_change_hook(self, before, after):
         super().mouse_state_change_hook(before, after)
@@ -223,11 +224,9 @@ class Widget(SimpleWidget):
 
     def handle_message(self, sender, message, **params):
         if message == Widget.MSG_KEY_REPEAT_START:
-            print('key repeat pulse starting for', self)
             self._key_repeat_pulse.start()
         elif message == Widget.MSG_KEY_REPEAT:
-            print('repeating key for', self)
-            self._key_down(*self._last_key)
+            self._key_down(*self._last_key, pygame.key.get_mods())
         elif message == Widget.MSG_LONG_HOVER:
             self._long_hover(pygame.mouse.get_pos())
         elif message == Widget.MSG_MULTIPLE_CLICK:

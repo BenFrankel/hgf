@@ -43,8 +43,18 @@ class Window(GraphicalComponent):
     def refresh(self):
         pygame.display.set_caption(self.title)
 
-    def open(self):
+    def launch(self, fps=60):
+        fps_clock = pygame.time.Clock()
         self.surf = pygame.display.set_mode(self.size, *self.args)
+        while True:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    return
+
+                self.handle_event(event)
+
+            self.step()
+            fps_clock.tick(fps)
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -64,8 +74,8 @@ class Window(GraphicalComponent):
             exit()
         # TODO: Warn about unhandled message?
 
-    def _draw(self):
-        if super()._draw():
+    def _prepare_display(self):
+        if super()._prepare_display():
             self.surf.fill(self.bg_color)
             self.surf.blit(self._display, (0, 0))
             pygame.display.update()

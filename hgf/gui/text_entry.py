@@ -21,7 +21,7 @@ from .text import TextBox
 from .component import GraphicalComponent
 
 from ..timing import Pulse
-from ..util import Time
+from ..util import Time, keyboard
 
 import pygame
 import pyperclip
@@ -188,7 +188,10 @@ class CursorPlacement:
         return self.index < other.index
 
     def __eq__(self, other):
-        return self.index == other.index
+        try:
+            return self.index == other.index
+        except AttributeError:
+            return False
 
     def __repr__(self):
         return 'CursorPlacement(index={}, row={}, col={}, raw_x={}, raw_y={}, x={}, y={})'\
@@ -200,20 +203,6 @@ class CursorPlacement:
 # TODO: Undo
 # TODO: Double click to highlight word, triple to highlight line
 class TextEntryBox(Widget, TextBox):
-    NAVIGATE_KEYS = [
-        pygame.K_LEFT,
-        pygame.K_RIGHT,
-        pygame.K_UP,
-        pygame.K_DOWN,
-        pygame.K_HOME,
-        pygame.K_END,
-    ]
-
-    EDIT_KEYS = [
-        pygame.K_BACKSPACE,
-        pygame.K_DELETE,
-    ]
-
     MSG_UNDO = 'text-undo'
     MSG_HIGHLIGHT_ALL = 'text-highlight-all'
     MSG_CUT = 'text-cut'
@@ -279,7 +268,7 @@ class TextEntryBox(Widget, TextBox):
 
     def _handle_key(self, unicode, key, mod):
         prev_index = self._cursor_place.index
-        if key in TextEntryBox.NAVIGATE_KEYS:
+        if key in keyboard.navigation_keys:
             if self._hl_cursor_place is not None and not mod & pygame.KMOD_SHIFT:
                 self._navigate_region(key, mod)
                 self._hl_cursor_place = None
@@ -296,7 +285,7 @@ class TextEntryBox(Widget, TextBox):
                     self._hl_cursor_place = None
             except AttributeError:
                 pass
-        elif key in TextEntryBox.EDIT_KEYS or (unicode and (unicode.isprintable() or unicode.isspace())):
+        elif key in keyboard.editing_keys:
             if self._hl_cursor_place is None:
                 index, text = _edit(self.text, self._cursor_place.index, unicode, key, mod)
             else:
@@ -448,7 +437,7 @@ class TextEntryBox(Widget, TextBox):
                 if self.highlight.start != (left.x, left.y) or self.highlight.end != (right.x, right.y):
                     self.highlight.start = left.x - self.margin, left.y - self.margin
                     self.highlight.end = right.x - self.margin, right.y - self.margin
-                    self.highlight.refresh()
+                    self.highlight.is_stale = True
                 else:
                     self.highlight.start = left.x - self.margin, left.y - self.margin
                     self.highlight.end = right.x - self.margin, right.y - self.margin

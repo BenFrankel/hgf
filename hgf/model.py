@@ -81,7 +81,10 @@ class State:
             setattr(self, attr, val)
 
     def __eq__(self, other):
-        return all(attr in dir(other) and getattr(other, attr) == getattr(self, attr) for attr in self.attrs)
+        try:
+            return all(attr in dir(other) and getattr(other, attr) == getattr(self, attr) for attr in self.attrs)
+        except AttributeError:
+            return False
 
     def __str__(self):
         return '{' + ', '.join('{}: {}'.format(attr, getattr(self, attr)) for attr in self.attrs) + '}'

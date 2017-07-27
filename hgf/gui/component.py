@@ -17,7 +17,7 @@
 ###############################################################################
 
 from ..component import Component
-from ..util import Rect, keys
+from ..util import Rect, keyboard
 
 import pygame
 
@@ -26,20 +26,23 @@ class GraphicalComponent(Rect, Component):
     def __init__(self, x=0, y=0, w=0, h=0, visible=True, hover=True, click=True, focus=False, opacity=1):
         super().__init__(x, y, w, h, pause=False)
 
-        # General flags
-        self.is_visible = visible
+        # User interaction flags
         self.can_hover = hover
         self.can_click = click
         self.can_focus = focus
-        self._opacity = opacity
+
+        # State flags
+        self.is_visible = visible
         self.is_hovered = False
         self.is_focused = False
+        self.is_stale = False  # Stale components will be refreshed
 
         # Graphical hierarchy
         self._graphical_children = []
         self._z = 0
 
         # Surfaces
+        self._opacity = opacity
         if self.is_transparent:
             self._colorkey = None
             self._background = None
@@ -56,7 +59,7 @@ class GraphicalComponent(Rect, Component):
             self._background.set_colorkey(self.colorkey)
             self._display.set_colorkey(self.colorkey)
 
-        # Dirty Rectangle memory
+        # Dirty rectangle status
         self._is_dirty = False
         self._dirty_rects = []
         self._dirty_area = 0
@@ -64,6 +67,10 @@ class GraphicalComponent(Rect, Component):
         self._old_rect = None
         self._old_visible = None
 
+    # Note!
+    # Refresh should never modify size or position
+    # It is expected to draw on top of the existing surface
+    # Size and position should be fixed after `tick`
     def refresh(self): pass
 
     def show_hook(self): pass
@@ -110,7 +117,7 @@ class GraphicalComponent(Rect, Component):
     def is_dirty(self):
         if self._old_visible is None:
             return self.is_visible
-        return self._is_dirty or self._old_rect != self or self._old_visible != self.is_visible
+        return self._is_dirty or self.is_stale or self._old_rect != self or self._old_visible != self.is_visible
 
     @is_dirty.setter
     def is_dirty(self, other):
@@ -173,20 +180,27 @@ class GraphicalComponent(Rect, Component):
     def abs_rect(self):
         return Rect(*self._abs_pos(), self.w, self.h)
 
+    # Should only be called once, at setup time
     def _recursive_refresh(self):
-        print('recursively refreshing', self)
         for child in self._graphical_children:
             if child.is_loaded:
                 child._recursive_refresh()
         self.refresh()
 
+    # Should only be called when style / options are reloaded
+    def _recursive_stale(self):
+        for child in self._graphical_children:
+            if child.is_loaded:
+                child._recursive_stale()
+        self.is_stale = True
+
     def reload_style(self):
         super().reload_style()
-        self._recursive_refresh()
+        self._recursive_stale()
 
     def reload_options(self):
         super().reload_options()
-        self._recursive_refresh()
+        self._recursive_stale()
 
     def _child_changed_z(self, child):
         self._graphical_children.remove(child)
@@ -262,7 +276,7 @@ class GraphicalComponent(Rect, Component):
 
     def _key_down(self, unicode, key, mod):
         try:
-            self.handle_message(self, self.controls_get(keys.from_pygame_key(key, mod)))
+            self.handle_message(self, self.controls_get(keyboard.name_from_pygame(key, mod)))
         except KeyError:
             pass
         self.key_down_hook(unicode, key, mod)
@@ -358,26 +372,40 @@ class GraphicalComponent(Rect, Component):
                         area.y -= child.y
                         self._display.blit(child._display, (child.x + area.x, child.y + area.y), area.as_pygame_rect())
 
-    def _draw(self):
-        if self.is_visible:
-            for child in self._graphical_children:
-                if not child.is_transparent and child.is_dirty and not self.is_dirty:
-                    for rect in child._transition_rects():
-                        self._add_dirty_rect(rect)
-                if child.is_visible or child._old_visible:
-                    child._draw()
-            if not self.is_transparent:
-                if self.is_dirty:
-                    self._redraw_area(self.rel_rect())
-                else:
-                    for rect in self._dirty_rects:
-                        self._redraw_area(rect)
-        changed = self.is_dirty or bool(self._dirty_rects)
+    def _step_display(self):
         self.is_dirty = False
         self._dirty_rects = []
         self._old_rect = self.copy_rect()
         self._old_visible = self.is_visible
+
+    def _prepare_display(self):
+        for child in self._graphical_children:
+            if not child.is_transparent and child.is_dirty and not self.is_dirty:
+                for rect in child._transition_rects():
+                    self._add_dirty_rect(rect)
+            if child.is_visible:
+                child._prepare_display()
+            elif child._old_visible:
+                child._step_display()
+        if not self.is_transparent:
+            if self.is_stale:
+                self.refresh()
+                self.is_stale = False
+                self.is_dirty = True
+            if self.is_dirty:
+                self._redraw_area(self.rel_rect())
+            else:
+                for rect in self._dirty_rects:
+                    self._redraw_area(rect)
+        changed = self.is_dirty or self._dirty_rects
+        self._step_display()
         return changed
+
+    def _recursive_track(self):
+        self._track()
+        for child in self._graphical_children:
+            if not child.is_paused:
+                child._recursive_track()
 
     # Catch quick mouse events
     def _track(self):
@@ -395,12 +423,8 @@ class GraphicalComponent(Rect, Component):
         if self.is_hovered and not pygame.mouse.get_focused():
             self.is_hovered = False
             self._mouse_exit(pos, pos, pygame.mouse.get_pressed())
-        # Recursively _track all GraphicalComponents
-        for child in self._graphical_children:
-            if not child.is_paused:
-                child._track()
 
     def step(self):
-        self._track()
         self._recursive_tick_hook()
-        self._draw()
+        self._recursive_track()
+        self._prepare_display()
