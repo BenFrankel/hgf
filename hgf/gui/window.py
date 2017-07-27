@@ -20,6 +20,8 @@ from .component import GraphicalComponent
 
 import pygame
 
+import logging
+
 
 class Window(GraphicalComponent):
     MSG_EXIT = 'exit'
@@ -43,8 +45,10 @@ class Window(GraphicalComponent):
     def refresh(self):
         pygame.display.set_caption(self.title)
 
-    def launch(self, fps=60):
+    def launch(self, fps=60, debug=False):
         fps_clock = pygame.time.Clock()
+        if not debug:
+            logging.disable(logging.NOTSET)
         self.surf = pygame.display.set_mode(self.size, *self.args)
         while True:
             for event in pygame.event.get():
@@ -72,7 +76,7 @@ class Window(GraphicalComponent):
     def handle_message(self, sender, message, **params):
         if message == Window.MSG_EXIT:
             exit()
-        # TODO: Warn about unhandled message?
+        logging.warning('Unhandled message', sender=sender, message=message, params=params)
 
     def _prepare_display(self):
         if super()._prepare_display():
