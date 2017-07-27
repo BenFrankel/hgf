@@ -20,7 +20,6 @@ import time
 import functools
 
 
-# TODO: Handle negative time properly
 @functools.total_ordering
 class Time:
     @staticmethod
@@ -58,144 +57,113 @@ class Time:
         return result
 
     def __init__(self, d=0, h=0, m=0, s=0, ms=0):
-        self._d = 0
-        self._h = 0
-        self._m = 0
-        self._s = 0
-        self._ms = 0
+        self._t = 0
 
-        self.d += d
-        self.h += h
-        self.m += m
-        self.s += s
-        self.ms += ms
+        self.d = d
+        self.h = h
+        self.m = m
+        self.s = s
+        self.ms = ms
 
     @property
     def d(self):
-        return self._d
+        return self._t // 86_400_000
 
     @d.setter
     def d(self, days):
-        self._d = int(days)
-        h = (days % 1) * 24
-        if h != 0:
-            self.h += h
+        self._t += int((days - self.d) * 86_400_000)
 
     @property
     def h(self):
-        return self._h
+        return (self._t // 3_600_000) % 24
 
     @h.setter
     def h(self, hours):
-        self._h = int(hours % 24)
-        m = (hours % 1) * 60
-        if m != 0:
-            self.m += m
-        d = hours // 24
-        if d != 0:
-            self.d += d
+        self._t += int((hours - self.h) * 3_600_000)
 
     @property
     def m(self):
-        return self._m
+        return (self._t // 60_000) % 60
 
     @m.setter
     def m(self, minutes):
-        self._m = int(minutes % 60)
-        s = (minutes % 1) * 60
-        if s != 0:
-            self.s += s
-        h = minutes // 60
-        if h != 0:
-            self.h += h
+        self._t += int((minutes - self.m) * 60_000)
 
     @property
     def s(self):
-        return self._s
+        return (self._t // 1000) % 60
 
     @s.setter
     def s(self, seconds):
-        self._s = int(seconds % 60)
-        ms = (seconds % 1) * 1000
-        if ms != 0:
-            self.ms += ms
-        m = seconds // 60
-        if m != 0:
-            self.m += m
+        self._t += int((seconds - self.s) * 1000)
 
     @property
     def ms(self):
-        return self._ms
+        return self._t % 1000
 
     @ms.setter
     def ms(self, milliseconds):
-        self._ms = int(milliseconds % 1000)
-        s = milliseconds // 1000
-        if s != 0:
-            self.s += s
+        self._t += int(milliseconds - self.ms)
 
     def in_d(self):
-        return self.in_ms() / 86400000
+        return self._t / 86400000
 
     def in_h(self):
-        return self.in_ms() / 3600000
+        return self._t / 3600000
 
     def in_m(self):
-        return self.in_ms() / 60000
+        return self._t / 60000
 
     def in_s(self):
-        return self.in_ms() / 1000
+        return self._t / 1000
 
     def in_ms(self):
-        return self.ms + (1000 * self.s) + (60000 * self.m) + (3600000 * self.h) + (86400000 * self.d)
+        return self._t
 
     def __add__(self, other):
-        return Time(self.d + other.d,
-                    self.h + other.h,
-                    self.m + other.m,
-                    self.s + other.s,
-                    self.ms + other.ms)
+        return Time(ms=self._t + other._t)
+
+    def __neg__(self):
+        return Time(ms=-self._t)
 
     def __sub__(self, other):
-        return Time(self.d - other.d,
-                    self.h - other.h,
-                    self.m - other.m,
-                    self.s - other.s,
-                    self.ms - other.ms)
+        return Time(ms=self._t - other._t)
 
     def __mul__(self, other):
-        return Time(self.d * other,
-                    self.h * other,
-                    self.m * other,
-                    self.s * other,
-                    self.ms * other)
+        return Time(ms=self._t * other)
 
     def __floordiv__(self, other):
         try:
-            return self.in_ms() // other.in_ms()
-        except KeyError:
-            return Time(ms=self.in_ms() // other)
+            return self._t // other._t
+        except AttributeError:
+            return Time(ms=self._t // other)
 
     def __mod__(self, other):
-        return Time(ms=self.in_ms() % other.in_ms())
+        return Time(ms=self._t % other._t)
 
     def __lt__(self, other):
-        return (self.d, self.h, self.m, self.s, self.ms) < (other.d, other.h, other.m, other.s, other.ms)
+        return self._t < other._t
 
     def __gt__(self, other):
-        return (self.d, self.h, self.m, self.s, self.ms) > (other.d, other.h, other.m, other.s, other.ms)
+        return self._t > other._t
 
     def __str__(self):
-        if self < Time(m=1):
+        if self._t < 0:
+            return 'negative {}'.format(-self)
+        if self._t < 60_000:
             return '{}.{:03d}'.format(self.s, self.ms)
-        elif self < Time(h=1):
+        elif self._t < 3_600_000:
             return '{}:{:02d}.{:03d}'.format(self.m, self.s, self.ms)
-        elif self < Time(d=1):
+        elif self._t < 86_400_000:
             return '{}:{:02d}:{:02d}.{:03d}'.format(self.h, self.m, self.s, self.ms)
         else:
-            return '{} day{}, {}:{:02d}:{:02d}.{:03d}'.format(self.d, '' if self.d == 1 else 's', self.h, self.m, self.s, self.ms)
+            d = self.d
+            return '{} day{}, {}:{:02d}:{:02d}.{:03d}'.format(d, '' if d == 1 else 's', self.h, self.m, self.s, self.ms)
 
     def __repr__(self):
+        if self._t < 0:
+            neg = -self
+            return 'Time(d={}, h={}, m={}, s={}, ms={})'.format(-neg.d, -neg.h, -neg.m, -neg.s, -neg.ms)
         return 'Time(d={}, h={}, m={}, s={}, ms={})'.format(self.d, self.h, self.m, self.s, self.ms)
 
 
