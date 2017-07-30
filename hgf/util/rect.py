@@ -272,6 +272,12 @@ class Rect:
     def as_pygame_rect(self):
         return pygame.Rect(self.x, self.y, self.w, self.h)
 
+    def rel_rect(self):
+        return Rect(0, 0, self.w, self.h)
+
+    def copy(self):
+        return Rect(self.x, self.y, self.w, self.h)
+
     def __eq__(self, other):
         try:
             return self.x == other.x and self.y == other.y and self.w == other.w and self.h == other.h
