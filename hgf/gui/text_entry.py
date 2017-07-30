@@ -116,7 +116,7 @@ class Cursor(GraphicalComponent):
         if message == Cursor.MSG_BLINK:
             self.toggle_show()
         else:
-            super().handle_message(self, message, **params)
+            super().handle_message(sender, message, **params)
 
 
 class Highlight(GraphicalComponent):
@@ -180,6 +180,14 @@ class CursorPlacement:
         # Actual x, y position (for displaying cursor)
         self.x = x
         self.y = y
+
+    @property
+    def pos(self):
+        return self.x, self.y
+
+    @pos.setter
+    def pos(self, other):
+        self.x, self.y = other
 
     def copy(self):
         return CursorPlacement(self.index, self.row, self.col, self.raw_x, self.raw_y, self.x, self.y)
@@ -321,7 +329,7 @@ class TextEntryBox(Widget, TextBox):
             self._place_cursor_by_index(self._hl_cursor_place, 0)
             self._place_cursor_by_index(self._cursor_place, len(self.text))
         else:
-            super().handle_message(self, message, **params)
+            super().handle_message(sender, message, **params)
 
     def _navigate(self, key, mod):
         cursor = self._cursor_place
@@ -404,7 +412,7 @@ class TextEntryBox(Widget, TextBox):
         cursor.col = col
 
         cursor.index = self._grid_index(cursor.row, cursor.col)
-        cursor.x, cursor.y = self._grid_pos(cursor.row, cursor.col)
+        cursor.pos = self._grid_pos(cursor.row, cursor.col)
 
     def _place_cursor_by_index(self, cursor, index):
         # Index is given
@@ -422,7 +430,7 @@ class TextEntryBox(Widget, TextBox):
             cursor.row = self._num_active_lines - 1
         cursor.col = index - length
 
-        cursor.raw_x, cursor.raw_y = cursor.x, cursor.y = self._grid_pos(cursor.row, cursor.col)
+        cursor.raw_x, cursor.raw_y = cursor.pos = self._grid_pos(cursor.row, cursor.col)
 
     def tick_hook(self):
         super().tick_hook()
@@ -434,7 +442,7 @@ class TextEntryBox(Widget, TextBox):
                 left, right = self._hl_cursor_place, self._cursor_place
                 if left > right:
                     left, right = right, left
-                if self.highlight.start != (left.x, left.y) or self.highlight.end != (right.x, right.y):
+                if self.highlight.start != left.pos or self.highlight.end != right.pos:
                     self.highlight.start = left.x - self.margin, left.y - self.margin
                     self.highlight.end = right.x - self.margin, right.y - self.margin
                     self.highlight.is_stale = True
@@ -444,7 +452,7 @@ class TextEntryBox(Widget, TextBox):
             elif self.highlight.is_visible:
                 self.highlight.deactivate()
                 self.cursor.activate()
-            self.cursor.pos = self._cursor_place.x - self.cursor.w // 2, self._cursor_place.y
+            self.cursor.midtop = self._cursor_place.pos
 
 
 class TextField(TextEntryBox):

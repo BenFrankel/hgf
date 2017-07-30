@@ -89,7 +89,7 @@ class TextBox(GraphicalComponent):
         self.type = 'text-box'
 
         self.margin = margin
-        self.justify = justify
+        self._justify = justify
         self.font = None
         self.fgcolor = None
 
@@ -101,9 +101,30 @@ class TextBox(GraphicalComponent):
 
         self._bg_factory = None
 
+    @property
+    def justify(self):
+        return self._justify
+
+    @justify.setter
+    def justify(self, other):
+        if self._justify == other:
+            return
+        self._justify = other
+        y = self.margin
+        for line in self.lines:
+            if other == 'left':
+                line.left = self.margin
+            elif other == 'center':
+                line.midx = self.relmidx
+            elif other == 'right':
+                line.right = self.relright - self.margin
+            line.y = y
+            y += self.line_height
+
     def prepare_hook(self):
+        super().prepare_hook()
         self.lines = [Text('', parent_style=True) for _ in range((self.h - 2 * self.margin) // self.line_height)]
-        self.register_prepare_all(self.lines)
+        self.register_prepare(*self.lines)
 
     def load_style(self):
         self.font = self.style_get('font')
@@ -204,16 +225,3 @@ class TextBox(GraphicalComponent):
 
     def _grid_index(self, row, col):
         return sum(len(line.text) + 1 for line in self.lines[:row]) + col
-
-    def tick_hook(self):
-        y = self.margin
-        for line in self.lines:
-            if self.justify == 'left':
-                line.left = self.margin
-            elif self.justify == 'center':
-                line.left = (self.w - self.font.get_rect(line.text).w) / 2
-            elif self.justify == 'right':
-                line.right = self.w - self.margin
-            line.y = y
-            y += self.line_height
-        super().tick_hook()

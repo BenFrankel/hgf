@@ -29,8 +29,9 @@ class Subject:
 
         self.is_loaded = False
 
-    def load_hook(self):
-        pass
+    def load_hook(self): pass
+
+    def update_hook(self): pass
 
     def load(self):
         self.load_hook()
@@ -39,19 +40,17 @@ class Subject:
     def add_observer(self, observer):
         self._observers.append(observer)
 
-    def register(self, child):
-        self._children.append(child)
-        if child.parent is not None:
-            child.parent.unregister(child)
-        child.parent = self
-
-    def register_all(self, children):
+    def register(self, *children):
+        self._children.extend(children)
         for child in children:
-            self.register(child)
+            if child.parent is not None:
+                child.parent.unregister(child)
+            child.parent = self
 
-    def unregister(self, child):
-        self._children.remove(child)
-        child.parent = None
+    def unregister(self, *children):
+        for child in children:
+            self._children.remove(child)
+            child.parent = None
 
     def _notify_all(self, diff):
         for observer in self._observers:
@@ -59,9 +58,6 @@ class Subject:
 
     def _get_state(self):
         return State(self.state_properties, tuple(getattr(self, attr) for attr in self.state_properties))
-
-    def update_hook(self):
-        pass
 
     def update(self):
         self.update_hook()

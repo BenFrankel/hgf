@@ -176,48 +176,36 @@ class Component:
         else:
             self.pause()
 
-    def register(self, child):
-        if not child.is_root:
-            child.parent.unregister(child)
-        child.parent = self
-        child.app = self._app
-        if child._context is None and self._context is not None:
-            child.context = self._context
-        child.new_parent_hook()
-        self._children.append(child)
-
-    def register_all(self, children):
+    def register(self, *children):
         for child in children:
-            self.register(child)
+            if not child.is_root:
+                child.parent.unregister(child)
+            child.parent = self
+            child.app = self._app
+            if child._context is None and self._context is not None:
+                child.context = self._context
+            child.new_parent_hook()
+            self._children.append(child)
 
-    def register_load(self, child):
-        self.register(child)
-        child.load()
-
-    def register_load_all(self, children):
+    def register_load(self, *children):
+        self.register(*children)
         for child in children:
-            self.register_load(child)
+            child.load()
 
-    def register_prepare(self, child):
-        self.register(child)
-        child.prepare()
-
-    def register_prepare_all(self, children):
+    def register_prepare(self, *children):
+        self.register(*children)
         for child in children:
-            self.register_prepare(child)
+            child.prepare()
 
-    def unregister(self, child):
-        child.disowned_hook()
-        child.app = None
-        child.parent = None
-        child.context = None
-        self._children.remove(child)
-        if child.is_focused:
-            child.lose_focus()
-
-    def unregister_all(self, children):
+    def unregister(self, *children):
         for child in children:
-            self.unregister(child)
+            child.disowned_hook()
+            child.app = None
+            child.parent = None
+            child.context = None
+            self._children.remove(child)
+            if child.is_focused:
+                child.lose_focus()
 
     def handle_message(self, sender, message, **params):
         self.send_message(message)

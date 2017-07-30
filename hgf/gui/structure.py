@@ -67,7 +67,7 @@ class Sequence(StructuralComponent):
         elif message == Sequence.MSG_PREV and self.loc_index is not None and not self.at_head:
             self.enter_index(self.loc_index - 1)
         else:
-            super().handle_message(self, message, **params)
+            super().handle_message(sender, message, **params)
 
     def register_index(self, index, child):
         self.loc_list.insert(index, child)
@@ -113,4 +113,4 @@ class Hub(StructuralComponent):
         elif message in self.loc_nodes:
             self.enter_node(self.loc_nodes[message])
         else:
-            super().handle_message(self, message, **params)
+            super().handle_message(sender, message, **params)

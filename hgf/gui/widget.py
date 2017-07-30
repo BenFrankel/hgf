@@ -17,6 +17,7 @@
 ###############################################################################
 
 from .component import GraphicalComponent
+from .visual import visualattr
 
 from ..timing import Delay, Pulse
 from ..util import Time, keyboard
@@ -33,20 +34,10 @@ class SimpleWidget(GraphicalComponent):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._mouse_state = SimpleWidget.IDLE
+        self.mouse_state = SimpleWidget.IDLE
 
-    def mouse_state_change_hook(self, before, after): pass
-
-    @property
-    def mouse_state(self):
-        return self._mouse_state
-
-    @mouse_state.setter
-    def mouse_state(self, other):
-        if self._mouse_state != other:
-            before = self._mouse_state
-            self._mouse_state = other
-            self.mouse_state_change_hook(before, other)
+    @visualattr
+    def mouse_state(self): pass
 
     def pause_hook(self):
         super().pause_hook()
@@ -232,4 +223,4 @@ class Widget(SimpleWidget):
         elif message == Widget.MSG_MULTIPLE_CLICK:
             self._multiple_click_count = 0
         else:
-            super().handle_message(self, message, **params)
+            super().handle_message(sender, message, **params)

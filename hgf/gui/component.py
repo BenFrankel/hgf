@@ -16,13 +16,15 @@
 #                                                                             #
 ###############################################################################
 
+from .visual import Visual, visualattr
+
 from ..component import Component
 from ..util import Rect, keyboard
 
 import pygame
 
 
-class GraphicalComponent(Rect, Component):
+class GraphicalComponent(Rect, Component, metaclass=Visual):
     def __init__(self, x=0, y=0, w=0, h=0, visible=True, hover=True, click=True, focus=False, opacity=1):
         super().__init__(x, y, w, h, pause=False)
 
@@ -31,8 +33,11 @@ class GraphicalComponent(Rect, Component):
         self.can_click = click
         self.can_focus = focus
 
-        # State flags
+        # Visual attributes
         self.is_visible = visible
+        self.size = w, h
+
+        # State flags
         self.is_hovered = False
         self.is_focused = False
         self.is_stale = False  # Stale components will be refreshed
@@ -67,10 +72,12 @@ class GraphicalComponent(Rect, Component):
         self._old_rect = None
         self._old_visible = None
 
+    def prepare_hook(self):
+        self.send_resize_hook()
+
     # Note!
     # Refresh should never modify size or position
-    # It is expected to draw on top of the existing surface
-    # Size and position should be fixed after `tick`
+    # It is expected to draw on top of the existing rect
     def refresh(self): pass
 
     def show_hook(self): pass
@@ -101,6 +108,18 @@ class GraphicalComponent(Rect, Component):
 
     def track_hook(self): pass
 
+    def _visibility_change(self, before, after):
+        if after:
+            self.show_hook()
+        else:
+            self.hide_hook()
+
+    @visualattr
+    def is_visible(self, _visibility_change): pass
+
+    @visualattr
+    def size(self, resize_hook): pass
+
     @property
     def is_transparent(self):
         return self._opacity == 0
@@ -117,7 +136,7 @@ class GraphicalComponent(Rect, Component):
     def is_dirty(self):
         if self._old_visible is None:
             return self.is_visible
-        return self._is_dirty or self.is_stale or self._old_rect != self or self._old_visible != self.is_visible
+        return self._is_dirty or self._old_visible != self.is_visible
 
     @is_dirty.setter
     def is_dirty(self, other):
@@ -165,22 +184,16 @@ class GraphicalComponent(Rect, Component):
         self._background = other
         self.is_dirty = True
 
-    def copy_rect(self):
-        return Rect(self.x, self.y, self.w, self.h)
-
-    def rel_rect(self):
-        return Rect(0, 0, self.w, self.h)
-
-    def _abs_pos(self):
+    def abs_pos(self):
         if self.is_root:
             return self.pos
-        px, py = self.parent._abs_pos()
+        px, py = self.parent.abs_pos()
         return px + self.x, py + self.y
 
     def abs_rect(self):
-        return Rect(*self._abs_pos(), self.w, self.h)
+        return Rect(*self.abs_pos(), self.w, self.h)
 
-    # Should only be called once, at setup time
+    # Should only be called once, at setup
     def _recursive_refresh(self):
         for child in self._graphical_children:
             if child.is_loaded:
@@ -209,21 +222,23 @@ class GraphicalComponent(Rect, Component):
                 self._graphical_children.insert(i, child)
         self._graphical_children.append(child)
 
-    def register(self, child):
-        super().register(child)
-        if isinstance(child, GraphicalComponent):
-            for i, other in enumerate(self._graphical_children):
-                if other.z > child.z:
-                    self._graphical_children.insert(i, child)
-                    break
-            self._graphical_children.append(child)
+    def register(self, *children):
+        super().register(*children)
+        for child in children:
+            if isinstance(child, GraphicalComponent):
+                for i, other in enumerate(self._graphical_children):
+                    if other.z > child.z:
+                        self._graphical_children.insert(i, child)
+                        break
+                self._graphical_children.append(child)
 
-    def unregister(self, child):
-        super().unregister(child)
-        try:
-            self._graphical_children.remove(child)
-        except ValueError:
-            pass
+    def unregister(self, *children):
+        super().unregister(*children)
+        for child in children:
+            try:
+                self._graphical_children.remove(child)
+            except ValueError:
+                pass
 
     def show(self):
         self.is_visible = True
@@ -350,11 +365,11 @@ class GraphicalComponent(Rect, Component):
             if self.area + old.area > comb.area:
                 return [comb]
             else:
-                return [self._old_rect, self.copy_rect()]
+                return [self._old_rect, Rect.copy(self)]
         elif self._old_visible:
             return [self._old_rect]
         elif self.is_visible:
-            return [self.copy_rect()]
+            return [Rect.copy(self)]
         return []
 
     def _redraw_area(self, rect):
@@ -372,10 +387,10 @@ class GraphicalComponent(Rect, Component):
                         area.y -= child.y
                         self._display.blit(child._display, (child.x + area.x, child.y + area.y), area.as_pygame_rect())
 
-    def _step_display(self):
+    def _clean_display(self):
         self.is_dirty = False
         self._dirty_rects = []
-        self._old_rect = self.copy_rect()
+        self._old_rect = Rect.copy(self)
         self._old_visible = self.is_visible
 
     def _prepare_display(self):
@@ -386,7 +401,7 @@ class GraphicalComponent(Rect, Component):
             if child.is_visible:
                 child._prepare_display()
             elif child._old_visible:
-                child._step_display()
+                child._clean_display()
         if not self.is_transparent:
             if self.is_stale:
                 self.refresh()
@@ -398,7 +413,7 @@ class GraphicalComponent(Rect, Component):
                 for rect in self._dirty_rects:
                     self._redraw_area(rect)
         changed = self.is_dirty or self._dirty_rects
-        self._step_display()
+        self._clean_display()
         return changed
 
     def _recursive_track(self):
@@ -407,12 +422,12 @@ class GraphicalComponent(Rect, Component):
             if not child.is_paused:
                 child._recursive_track()
 
-    # Catch quick mouse events
+    # Catch mouse events not caught by Pygame
     def _track(self):
         self.track_hook()
         pos = pygame.mouse.get_pos()
         if not self.is_root:
-            pos = tuple(x1 - x2 for x1, x2 in zip(pos, self.parent.abs_rect().pos))
+            pos = tuple(x1 - x2 for x1, x2 in zip(pos, self.parent.abs_pos()))
         if self.is_hovered != self.collide_point(pos):
             rel = pygame.mouse.get_rel()
             self.is_hovered = not self.is_hovered

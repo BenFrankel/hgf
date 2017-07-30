@@ -28,7 +28,8 @@ from .gui import\
     SimpleWidget, Widget,\
     Text, TextBox,\
     Image,\
-    GraphicalComponent
+    GraphicalComponent,\
+    visual, visualattr
 
 from .util import\
     Rect,\
@@ -46,6 +47,7 @@ __all__ = [
     'Text', 'TextBox',
     'Image',
     'GraphicalComponent',
+    'visualattr',
 
     'Rect',
     'Time', 'Timer', 'CountdownTimer',

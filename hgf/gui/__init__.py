@@ -24,6 +24,7 @@ from .widget import SimpleWidget, Widget
 from .text import Text, TextBox
 from .image import Image
 from .component import GraphicalComponent
+from .visual import visualattr
 
 
 __all__ = [
@@ -35,4 +36,5 @@ __all__ = [
     'Text', 'TextBox',
     'Image',
     'GraphicalComponent',
+    'visualattr',
 ]

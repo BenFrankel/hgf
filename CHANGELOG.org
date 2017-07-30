@@ -8,7 +8,7 @@
 
 ** Restructuring [0/1]
 
-- [ ] Overhaul of the style / options system to use CSS-style selectors (improve flexibility, simplicity, and familiarity of the system)
+- [ ] Overhaul of the style / options system to use CSS-style selectors (improve flexibility and familiarity of the system)
 
 
 * Version 0.2.0 (In Progress)
@@ -52,7 +52,7 @@
 
 - [X] Activate / deactivate
 - [X] Toggle show / pause
-- [X] Simultaneously register and load (~register_load~, ~register_load_all~, ~register_prepare~, ~register_prepare_all~)
+- [X] Simultaneously register and load (~register_load~, ~register_prepare~)
 - [X] Event loop is handled implicitly on application launch
 - [ ] Default values for all built-in configurables
 

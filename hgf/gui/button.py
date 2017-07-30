@@ -21,11 +21,11 @@ from .text import Text
 
 
 class Button(SimpleWidget):
-    def __init__(self, label_name, message, **kwargs):
+    def __init__(self, label_text, message, **kwargs):
         super().__init__(**kwargs)
         self.type = 'button'
 
-        self._label_name = label_name
+        self._label_text = label_text
         self.message = message
 
         self.label = None
@@ -33,7 +33,8 @@ class Button(SimpleWidget):
         self._bg_factory = None
 
     def load_hook(self):
-        self.label = Text(self._label_name,
+        super().load_hook()
+        self.label = Text(self._label_text,
                           fontsize=max(self.h // 3, 14),
                           fgcolor=(255, 255, 255),
                           parent_style=True)
@@ -41,28 +42,24 @@ class Button(SimpleWidget):
         self.register_load(self.label)
 
     def load_style(self):
+        super().load_style()
         self._bg_factory = self.style_get('background')
 
     def refresh(self):
+        super().refresh()
         self.background = self._bg_factory(self.size, self.mouse_state)
-
-    @property
-    def label_name(self):
-        return self._label_name
-
-    @label_name.setter
-    def label_name(self, other):
-        if self._label_name != other:
-            self._label_name = other
-            self.label.text = other
 
     def mouse_state_change_hook(self, before, after):
         self.is_stale = True
-        if before == SimpleWidget.PRESS and after == SimpleWidget.HOVER:
-            self.send_message(self.message)
-
-    def tick_hook(self):
-        self.label.center = self.rel_rect().center
-        if self.mouse_state == SimpleWidget.PRESS:
+        if after == SimpleWidget.PRESS:
             self.label.x -= 1
             self.label.y += 1
+        elif before == SimpleWidget.PRESS:
+            self.label.x += 1
+            self.label.y -= 1
+            if after == SimpleWidget.HOVER:
+                self.send_message(self.message)
+
+    def resize_hook(self, before, after):
+        self.label.fontsize = max(self.h // 3, 14)
+        self.label.center = self.relcenter
