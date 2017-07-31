@@ -31,6 +31,11 @@ from .gui import\
     GraphicalComponent,\
     visual, visualattr
 
+from .timing import\
+    TimingComponent,\
+    Pulse, Delay,\
+    Gradient
+
 from .util import\
     Rect,\
     Time, Timer, CountdownTimer
@@ -48,6 +53,10 @@ __all__ = [
     'Image',
     'GraphicalComponent',
     'visualattr',
+
+    'TimingComponent',
+    'Pulse', 'Delay',
+    'Gradient',
 
     'Rect',
     'Time', 'Timer', 'CountdownTimer',
