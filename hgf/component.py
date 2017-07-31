@@ -121,19 +121,15 @@ class Component:
         self.load_hook()
 
     def _recursive_prepare_hook(self):
+        self.prepare_hook()
         for child in self._children:
             if child.is_loaded:
                 child._recursive_prepare_hook()
-        self.prepare_hook()
-
-    # Compatibility with GraphicalComponent
-    def _recursive_refresh(self): pass
 
     def prepare(self):
         self.load()
         self._recursive_load_style()
         self._recursive_load_options()
-        self._recursive_refresh()
         self._recursive_prepare_hook()
 
     def reload_style(self):

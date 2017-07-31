@@ -73,7 +73,7 @@ class GraphicalComponent(Rect, Component, metaclass=Visual):
         self._old_visible = None
 
     def prepare_hook(self):
-        self.send_resize_hook()
+        self.resize_hook_send()
 
     # Note!
     # Refresh should never modify size or position
@@ -118,7 +118,10 @@ class GraphicalComponent(Rect, Component, metaclass=Visual):
     def is_visible(self, _visibility_change): pass
 
     @visualattr
-    def size(self, resize_hook): pass
+    def w(self, resize_hook): pass
+
+    @visualattr
+    def h(self, resize_hook): pass
 
     @property
     def is_transparent(self):
@@ -199,6 +202,10 @@ class GraphicalComponent(Rect, Component, metaclass=Visual):
             if child.is_loaded:
                 child._recursive_refresh()
         self.refresh()
+
+    def prepare(self):
+        super().prepare()
+        self._recursive_refresh()
 
     # Should only be called when style / options are reloaded
     def _recursive_stale(self):

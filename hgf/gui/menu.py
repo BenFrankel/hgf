@@ -21,8 +21,6 @@ from .text import Text
 from .component import GraphicalComponent
 from .visual import visualattr
 
-from ..util import Rect
-
 
 class Menu(GraphicalComponent):
     def __init__(self, justify='center', title='Menu', **kwargs):
@@ -72,12 +70,9 @@ class Menu(GraphicalComponent):
         self._button_w = self.w // 5
         self._button_h = self.h // 10
 
-        buttons_rect = Rect(w=self._button_w,
-                            h=len(self.buttons) * (self._button_h + self._button_gap) - self._button_gap)
-
         self._title_text.fontsize = self._button_h
 
-        button_y = self.midy - buttons_rect.midy
+        button_y = self.midy - self._button_w // 2
         self._title_text.midy = button_y // 2
 
         for button in self.buttons:
@@ -85,7 +80,7 @@ class Menu(GraphicalComponent):
             button.y = button_y
             button_y += button.h + self._button_gap
 
-        self.send_justify_change_hook()
+        self.justify_change_hook_send()
 
     def add_button(self, name, message):
         self._button_info.append((name, message))

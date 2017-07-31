@@ -13,7 +13,7 @@ class visualattr:
             raise TypeError('{} expects 1 or 2 positional arguments but {} were given'
                             .format(self.__class__.__name__, func.__code__.co_argcount))
 
-        self._send_hook = 'send_{}'.format(self._hook)
+        self._send_hook = '{}_send'.format(self._hook)
 
     def __get__(self, instance, owner):
         try:
@@ -33,50 +33,58 @@ class visualattr:
 
 
 class Visual(type):
-    _queue = '__Visual_queue'
+    _queue = '__queue'
+    _initialized = '__initialized'
 
     def __init__(cls, name, *bases, **namespace):
-        # Find visual attrs
-        _visual_attrs = [value for value in cls.__dict__.values() if isinstance(value, visualattr)]
+        # Find visualattrs
+        _visualattrs = [attr for attr in cls.__dict__.values() if isinstance(attr, visualattr)]
 
-        # Add value, previous value, and change hook for each visualattr
-        for attr in _visual_attrs:
+        # Add value, previous value, change hook
+        # and send change hook for each visualattr
+        for attr in _visualattrs:
             setattr(cls, attr._value, None)
             setattr(cls, attr._prev_value, None)
             if attr._hook not in cls.__dict__:
                 setattr(cls, attr._hook, lambda self, before, after: None)
-            hook = getattr(cls, attr._hook)
-            setattr(cls, attr._send_hook, lambda self: hook(self,
-                                                            getattr(self, attr._prev_value),
-                                                            getattr(self, attr._value)))
+            setattr(cls,
+                    attr._send_hook,
+                    lambda self: getattr(self, attr._hook)(getattr(self, attr._prev_value),
+                                                           getattr(self, attr._value)))
 
-        # Get tick_hook
-        try:
-            old_tick_hook = cls.tick_hook
-        except AttributeError:
-            old_tick_hook = lambda self: None
+        if any(isinstance(sprcls, Visual) for sprcls in cls.__bases__):
+            super().__init__(name, bases, namespace)
+            return
+
+        # Add initialized flag
+        setattr(cls, Visual._initialized, False)
 
         # Modify tick_hook to send visualattr hook
-        def tick_hook(self):
-            queue = getattr(self, Visual._queue)
-            for attr in queue:
-                self.is_dirty = True
-                prev_value = getattr(self, attr._prev_value)
-                value = getattr(self, attr._value)
-                print(attr.__name__, ':', 'Shift from', prev_value, 'to', value, '--', self)
-                setattr(self, attr._prev_value, value)
-                getattr(self, attr._hook)(prev_value, value)
-            queue.clear()
-            old_tick_hook(self)
-        cls.tick_hook = tick_hook
+        def tick_hook_wrapper(tick_hook):
+            def inner(self):
+                queue = getattr(self, Visual._queue)
+                if getattr(self, Visual._initialized):
+                    for attr in queue:
+                        self.is_dirty = True
+                        prev_value = getattr(self, attr._prev_value)
+                        value = getattr(self, attr._value)
+                        getattr(self, attr._hook)(prev_value, value)
+                        setattr(self, attr._prev_value, value)
+                    tick_hook(self)
+                else:
+                    setattr(self, Visual._initialized, True)
+                    for attr in _visualattrs:
+                        setattr(self, attr._prev_value, getattr(self, attr._value))
+                queue.clear()
+            return inner
+        cls.tick_hook = tick_hook_wrapper(cls.tick_hook or (lambda self: None))
 
-        # Get __init__
-        old_init = cls.__init__
-
-        # Modify __init__ to initialize visualattr hook queue
-        def init(self, *args, **kwargs):
-            setattr(self, Visual._queue, [])
-            old_init(self, *args, **kwargs)
-        cls.__init__ = init
+        # Modify __init__ to initialize hook queue
+        def init_wrapper(init):
+            def inner(self, *args, **kwargs):
+                setattr(self, Visual._queue, [])
+                init(self, *args, **kwargs)
+            return inner
+        cls.__init__ = init_wrapper(cls.__init__)
 
         super().__init__(name, bases, namespace)

@@ -24,80 +24,44 @@ class Rect:
         # Multiple inheritance compatibility
         super().__init__(**kwargs)
 
-        self._x = x
-        self._y = y
-        self._w = w
-        self._h = h
+        self.x = x
+        self.y = y
+        self.w = w
+        self.h = h
 
     @property
     def size(self):
-        return self._w, self._h
+        return self.w, self.h
 
     @size.setter
     def size(self, other):
-        self._w, self._h = other
-
-    @property
-    def w(self):
-        return self.size[0]
-
-    @w.setter
-    def w(self, other):
-        self.size = (other, self.size[1])
-
-    @property
-    def h(self):
-        return self.size[1]
-
-    @h.setter
-    def h(self, other):
-        self.size = (self.size[0], other)
-
-    @property
-    def width(self):
-        return self.w
-
-    @width.setter
-    def width(self, other):
-        self.w = other
-
-    @property
-    def height(self):
-        return self.h
-
-    @height.setter
-    def height(self, other):
-        self.h = other
+        self.w, self.h = other
 
     @property
     def pos(self):
-        return self._x, self._y
+        return self.x, self.y
 
     @pos.setter
     def pos(self, other):
-        self._x, self._y = other
+        self.x, self.y = other
 
     topleft = pos
 
     @property
-    def x(self):
-        return self.pos[0]
+    def left(self):
+        return self.x
 
-    @x.setter
-    def x(self, other):
-        self.pos = (other, self.pos[1])
-
-    left = x
+    @left.setter
+    def left(self, other):
+        self.x = other
 
     @property
-    def y(self):
-        return self.pos[1]
+    def top(self):
+        return self.y
 
-    @y.setter
-    def y(self, other):
-        self.pos = (self.pos[0], other)
-
-    top = y
+    @top.setter
+    def top(self, other):
+        self.y = other
 
     @property
     def midx(self):

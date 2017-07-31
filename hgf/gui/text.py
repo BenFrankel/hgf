@@ -31,9 +31,9 @@ class Text(GraphicalComponent):
 
     def load_style(self):
         if self._parent_style:
-            self._font = self.parent.style_get('font')
+            self.font = self.parent.style_get('font')
         else:
-            self._font = self.style_get('font')
+            self.font = self.style_get('font')
 
     def refresh(self):
         self.background = self._font.render(self.text, fgcolor=self.fgcolor, size=self.fontsize)[0]
