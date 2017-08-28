@@ -28,6 +28,11 @@ class StructuralComponent(GraphicalComponent):
         if self.location is not None:
             self.location.load()
 
+    def layout_hook(self):
+        for child in self._graphical_children:
+            child.size = self.size
+            child.pos = self.relpos
+
     def enter_node(self, child):
         if self.location is not child:
             if self.location is not None:

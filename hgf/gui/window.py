@@ -31,10 +31,13 @@ class Window(GraphicalComponent):
         self.type = 'window'
 
         self.args = args
-        self.surf = None
+        self._display = None
 
         self.bg_color = None
         self.title = 'hgf Window'
+
+    def prepare_hook(self):
+        self._display = pygame.display.set_mode(self.size, *self.args)
 
     def load_style(self):
         self.bg_color = self.style_get('bg-color')
@@ -44,13 +47,13 @@ class Window(GraphicalComponent):
 
     def refresh(self):
         pygame.display.set_caption(self.title)
+        self.background.fill(self.bg_color)
 
     def launch(self, fps=None, debug=False):
         if not debug:
             logging.disable(logging.NOTSET)
 
         fps_clock = pygame.time.Clock()
-        self.surf = pygame.display.set_mode(self.size, *self.args)
 
         while True:
             for event in pygame.event.get():
@@ -82,6 +85,4 @@ class Window(GraphicalComponent):
 
     def _prepare_display(self):
         if super()._prepare_display():
-            self.surf.fill(self.bg_color)
-            self.surf.blit(self._display, self.reltopleft)
             pygame.display.update()

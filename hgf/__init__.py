@@ -25,11 +25,12 @@ from .gui import\
     StructuralComponent, Sequence, Hub,\
     TextEntryBox, TextField,\
     Button, Menu,\
+    DragWidget, SlideWidget,\
     SimpleWidget, Widget,\
     Text, TextBox,\
     Image,\
     GraphicalComponent,\
-    visual, visualattr
+    transition
 
 from .timing import\
     TimingComponent,\
@@ -48,11 +49,12 @@ __all__ = [
     'StructuralComponent', 'Sequence', 'Hub',
     'TextEntryBox', 'TextField',
     'Button', 'Menu',
+    'DragWidget', 'SlideWidget',
     'SimpleWidget', 'Widget',
     'Text', 'TextBox',
     'Image',
     'GraphicalComponent',
-    'visualattr',
+    'transition',
 
     'TimingComponent',
     'Pulse', 'Delay',

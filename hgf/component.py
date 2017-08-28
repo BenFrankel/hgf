@@ -18,7 +18,8 @@
 
 
 class Component:
-    def __init__(self, pause=False):
+    def __init__(self, *args, pause=False, **kwargs):
+        super().__init__(*args, **kwargs)
 
         # Configuration
         self.type = None

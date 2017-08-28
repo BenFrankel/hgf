@@ -17,7 +17,7 @@
 ###############################################################################
 
 from .component import GraphicalComponent
-from .visual import visualattr
+from .hook import transition
 
 from ..timing import Delay, Pulse
 from ..util import Time, keyboard
@@ -36,8 +36,8 @@ class SimpleWidget(GraphicalComponent):
         super().__init__(**kwargs)
         self.mouse_state = SimpleWidget.IDLE
 
-    @visualattr
-    def mouse_state(self): pass
+    @transition
+    def mouse_state(self, before, after): pass
 
     def pause_hook(self):
         super().pause_hook()
@@ -181,8 +181,8 @@ class Widget(SimpleWidget):
             self._key_repeat_ticker.reset()
             self._key_repeat_pulse.reset()
 
-    def mouse_state_change_hook(self, before, after):
-        super().mouse_state_change_hook(before, after)
+    def mouse_state_transition(self, before, after):
+        super().mouse_state_transition(before, after)
         if after == SimpleWidget.HOVER:
             self._long_hover_timer.start()
         elif before == SimpleWidget.HOVER:

@@ -21,13 +21,17 @@ from ..util import Timer, CountdownTimer
 
 
 class TimingComponent(Component):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
         self._duration = None
         self._expiration_timer = CountdownTimer()
 
         self._timer = Timer()
         self.is_running = False
+
+    @property
+    def time(self):
+        return self._timer.time
 
     def time_shift_hook(self, before, after): pass
 

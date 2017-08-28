@@ -16,48 +16,31 @@
 #                                                                             #
 ###############################################################################
 
+from .drag import SlideWidget
 from .widget import SimpleWidget
-from .text import Text
+from .component import GraphicalComponent
 
 
-class Button(SimpleWidget):
-    def __init__(self, label_text, message, **kwargs):
-        super().__init__(opacity=1, **kwargs)
-        self.type = 'button'
-        self._bg_factory = None
+# TODO
+class Scrollbar(SimpleWidget):
+    def __init__(self, length=0.5, **kwargs):
+        super().__init__(**kwargs)
+        self.type = 'scrollbar'
 
-        self._label_text = label_text
-        self.label = None
-
-        self.message = message
+        self._drag_bar = None
+        self._drag_bar_length = length
 
     def load_hook(self):
-        super().load_hook()
-        self.label = Text(self._label_text,
-                          fgcolor=(255, 255, 255),
-                          parent_style=True)
-        self.register_load(self.label)
+        self._drag_bar = SlideWidget(w=self.w, h=self._drag_bar_length)
+        rel = self.rel_rect()
+        self._drag_bar.set_axis(rel.midtop, rel.midbottom)
 
-    def load_style(self):
-        super().load_style()
-        self._bg_factory = self.style_get('background')
 
-    def refresh(self):
-        super().refresh()
-        self.background = self._bg_factory(self.size, self.mouse_state)
+# TODO
+class Frame(GraphicalComponent):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
-    def layout_hook(self):
-        super().layout_hook()
-        self.label.fontsize = max(self.h // 3, 14)
-        self.label.fontsize_apply_transition()
-        self.label.center = self.relcenter
 
-    def mouse_state_transition(self, before, after):
-        if after == SimpleWidget.PRESS:
-            self.label.x -= 1
-            self.label.y += 1
-        elif before == SimpleWidget.PRESS:
-            self.label.x += 1
-            self.label.y -= 1
-            if after == SimpleWidget.HOVER:
-                self.send_message(self.message)
+# TODO
+# class TextFrame

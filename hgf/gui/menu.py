@@ -19,12 +19,12 @@
 from .button import Button
 from .text import Text
 from .component import GraphicalComponent
-from .visual import visualattr
+from .hook import transition
 
 
 class Menu(GraphicalComponent):
     def __init__(self, justify='center', title='Menu', **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(opacity=2, **kwargs)
         self.type = 'menu'
 
         self.title = title
@@ -39,8 +39,20 @@ class Menu(GraphicalComponent):
 
         self.justify = justify
 
-    @visualattr
-    def justify(self): pass
+    @transition
+    def justify(self, after):
+        if after == 'left':
+            button_x = self._button_gap
+            self._title_text.x = self._button_gap
+        elif after == 'right':
+            button_x = self.relright - self._button_gap - self._button_w
+            self._title_text.right = self.relright - self._button_gap
+        else:
+            button_x = self.relmidx - self._button_w // 2
+            self._title_text.midx = self.relmidx
+
+        for button in self.buttons:
+            button.x = button_x
 
     def load_hook(self):
         for button_info in self._button_info:
@@ -51,26 +63,13 @@ class Menu(GraphicalComponent):
         self._title_text = Text(self.title, fgcolor=(0, 60, 100))
         self.register_load(self._title_text)
 
-    def justify_change_hook(self, before, after):
-        if self.justify == 'left':
-            button_x = self._button_gap
-            self._title_text.x = self._button_gap
-        elif self.justify == 'right':
-            button_x = self.relright - self._button_gap - self._button_w
-            self._title_text.right = self.relright - self._button_gap
-        else:
-            button_x = self.relmidx - self._button_w // 2
-            self._title_text.midx = self.relmidx
-
-        for button in self.buttons:
-            button.x = button_x
-
-    def resize_hook(self, before, after):
+    def layout_hook(self):
         self._button_gap = self.h // 50
         self._button_w = self.w // 5
         self._button_h = self.h // 10
 
         self._title_text.fontsize = self._button_h
+        self._title_text.fontsize_apply_transition()
 
         button_y = self.midy - self._button_w // 2
         self._title_text.midy = button_y // 2
@@ -80,7 +79,7 @@ class Menu(GraphicalComponent):
             button.y = button_y
             button_y += button.h + self._button_gap
 
-        self.justify_change_hook_send()
+        self.justify_apply_transition()
 
     def add_button(self, name, message):
         self._button_info.append((name, message))

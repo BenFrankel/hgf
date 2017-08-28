@@ -234,12 +234,16 @@ class TextEntryBox(Widget, TextBox):
         self.cursor.deactivate()
         self.register_load(self.cursor)
 
-        self.highlight = Highlight(w=self.w - 2 * self.margin,
-                                   h=self.h - 2 * self.margin)
+        self.highlight = Highlight()
         self.highlight.z = -10
-        self.highlight.pos = self.margin, self.margin
         self.highlight.deactivate()
         self.register_load(self.highlight)
+
+    def layout_hook(self):
+        super().layout_hook()
+        self.highlight.w = self.w - 2 * self.margin
+        self.highlight.h = self.h - 2 * self.margin
+        self.highlight.pos = self.margin, self.margin
 
     def take_focus_hook(self):
         self.cursor.activate()

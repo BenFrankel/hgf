@@ -17,17 +17,21 @@
 ###############################################################################
 
 from .component import GraphicalComponent
+from .hook import transition
 
 
 class Text(GraphicalComponent):
-    def __init__(self, text='', font=None, fontsize=14, fgcolor=None, parent_style=False):
-        super().__init__(hover=False, click=False)
-        self._text = text
-        self._font = font
-        self._fontsize = fontsize
-        self._font = font
+    def __init__(self, text='', font=None, fontsize=14, fgcolor=None, parent_style=False, **kwargs):
+        super().__init__(hover=False, click=False, opacity=1, **kwargs)
+        self.text = text
+        self.font = font
+        self.fontsize = fontsize
+        self.font = font
         self.fgcolor = (0, 0, 0) if fgcolor is None else fgcolor
         self._parent_style = parent_style
+
+    def layout_hook(self):
+        self.size = self.get_rect().size
 
     def load_style(self):
         if self._parent_style:
@@ -36,46 +40,29 @@ class Text(GraphicalComponent):
             self.font = self.style_get('font')
 
     def refresh(self):
-        self.background = self._font.render(self.text, fgcolor=self.fgcolor, size=self.fontsize)[0]
+        self.background = self.font.render(self.text, fgcolor=self.fgcolor, size=self.fontsize)[0]
 
-    @property
+    @transition
     def text(self):
-        return self._text
+        self.size = self.get_rect().size
 
-    @text.setter
-    def text(self, other):
-        if self._text != other:
-            self._text = other
-            self.size = self.get_rect().size
-            self.is_stale = True
-
-    @property
+    @transition
     def font(self):
-        return self._font
+        self.size = self.get_rect().size
 
-    @font.setter
-    def font(self, other):
-        if self._font != other:
-            self._font = other
-            self.size = self.get_rect().size
-            self.is_stale = True
-
-    @property
+    @transition
     def fontsize(self):
-        return self._fontsize
+        self.size = self.get_rect().size
 
-    @fontsize.setter
-    def fontsize(self, other):
-        if self._fontsize != other:
-            self._fontsize = other
-            self.size = self.get_rect().size
-            self.is_stale = True
+    @transition
+    def fgcolor(self):
+        self.is_stale = True
 
     def get_metrics(self):
-        return self._font.get_metrics(self.text, self.fontsize)
+        return self.font.get_metrics(self.text, self.fontsize)
 
     def get_rect(self, text=None):
-        return self._font.get_rect(self.text if text is None else text, size=self.fontsize)
+        return self.font.get_rect(self.text if text is None else text, size=self.fontsize)
 
     def __repr__(self):
         return 'Text(\'{}\')'.format(self.text)
@@ -85,11 +72,12 @@ class Text(GraphicalComponent):
 
 class TextBox(GraphicalComponent):
     def __init__(self, text='', justify='left', margin=3, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(opacity=1, **kwargs)
         self.type = 'text-box'
+        self._bg_factory = None
 
         self.margin = margin
-        self._justify = justify
+        self.justify = justify
         self.font = None
         self.fgcolor = None
 
@@ -98,33 +86,6 @@ class TextBox(GraphicalComponent):
         self.line_height = None
         self.lines = []
         self._num_active_lines = 1
-
-        self._bg_factory = None
-
-    @property
-    def justify(self):
-        return self._justify
-
-    @justify.setter
-    def justify(self, other):
-        if self._justify == other:
-            return
-        self._justify = other
-        y = self.margin
-        for line in self.lines:
-            if other == 'left':
-                line.left = self.margin
-            elif other == 'center':
-                line.midx = self.relmidx
-            elif other == 'right':
-                line.right = self.relright - self.margin
-            line.y = y
-            y += self.line_height
-
-    def prepare_hook(self):
-        super().prepare_hook()
-        self.lines = [Text('', parent_style=True) for _ in range((self.h - 2 * self.margin) // self.line_height)]
-        self.register_prepare(*self.lines)
 
     def load_style(self):
         self.font = self.style_get('font')
@@ -139,6 +100,24 @@ class TextBox(GraphicalComponent):
         for line in self.lines:
             line.font = self.font
             line.fgcolor = self.fgcolor
+
+    def layout_hook(self):
+        self.lines = [Text('', parent_style=True) for _ in range((self.h - 2 * self.margin) // self.line_height)]
+        self.register_prepare(*self.lines)
+        self.set_text(self.text)
+
+    @transition
+    def justify(self, after):
+        y = self.margin
+        for line in self.lines:
+            if after == 'left':
+                line.left = self.margin
+            elif after == 'center':
+                line.midx = self.relmidx
+            else:
+                line.right = self.relright - self.margin
+            line.y = y
+            y += self.line_height
 
     def _wrap_paragraph(self, text):
         if text == '':

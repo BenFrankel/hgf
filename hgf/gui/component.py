@@ -16,7 +16,7 @@
 #                                                                             #
 ###############################################################################
 
-from .visual import Visual, visualattr
+from .hook import _HookHandler, transition
 
 from ..component import Component
 from ..util import Rect, keyboard
@@ -24,9 +24,13 @@ from ..util import Rect, keyboard
 import pygame
 
 
-class GraphicalComponent(Rect, Component, metaclass=Visual):
-    def __init__(self, x=0, y=0, w=0, h=0, visible=True, hover=True, click=True, focus=False, opacity=1):
-        super().__init__(x, y, w, h, pause=False)
+class GraphicalComponent(Rect, Component, metaclass=_HookHandler):
+    def __init__(self,
+                 x=0, y=0, w=0, h=0,
+                 visible=True, hover=True, click=True, focus=False,
+                 opacity=2,
+                 **kwargs):
+        super().__init__(x=x, y=y, w=w, h=h, pause=False, **kwargs)
 
         # User interaction flags
         self.can_hover = hover
@@ -35,7 +39,6 @@ class GraphicalComponent(Rect, Component, metaclass=Visual):
 
         # Visual attributes
         self.is_visible = visible
-        self.size = w, h
 
         # State flags
         self.is_hovered = False
@@ -72,13 +75,11 @@ class GraphicalComponent(Rect, Component, metaclass=Visual):
         self._old_rect = None
         self._old_visible = None
 
-    def prepare_hook(self):
-        self.resize_hook_send()
-
-    # Note!
     # Refresh should never modify size or position
     # It is expected to draw on top of the existing rect
     def refresh(self): pass
+
+    def layout_hook(self): pass
 
     def show_hook(self): pass
 
@@ -108,20 +109,26 @@ class GraphicalComponent(Rect, Component, metaclass=Visual):
 
     def track_hook(self): pass
 
-    def _visibility_change(self, before, after):
+    @transition
+    def is_visible(self, after):
         if after:
             self.show_hook()
         else:
             self.hide_hook()
 
-    @visualattr
-    def is_visible(self, _visibility_change): pass
+    @transition
+    def w(self):
+        self.layout_hook()
 
-    @visualattr
-    def w(self, resize_hook): pass
+    @transition
+    def h(self):
+        self.layout_hook()
 
-    @visualattr
-    def h(self, resize_hook): pass
+    @transition
+    def x(self): pass
+
+    @transition
+    def y(self): pass
 
     @property
     def is_transparent(self):
@@ -196,6 +203,12 @@ class GraphicalComponent(Rect, Component, metaclass=Visual):
     def abs_rect(self):
         return Rect(*self.abs_pos(), self.w, self.h)
 
+    def _recursive_layout_hook(self):
+        self.layout_hook()
+        for child in self._graphical_children:
+            if child.is_loaded:
+                child._recursive_layout_hook()
+
     # Should only be called once, at setup
     def _recursive_refresh(self):
         for child in self._graphical_children:
@@ -203,8 +216,18 @@ class GraphicalComponent(Rect, Component, metaclass=Visual):
                 child._recursive_refresh()
         self.refresh()
 
+    def _recursive_refresh_stale(self):
+        for child in self._graphical_children:
+            if child.is_loaded:
+                child._recursive_refresh_stale()
+        if self.is_stale:
+            self.refresh()
+            self.is_stale = False
+            self.is_dirty = True
+
     def prepare(self):
         super().prepare()
+        self._recursive_layout_hook()
         self._recursive_refresh()
 
     # Should only be called when style / options are reloaded
@@ -234,7 +257,7 @@ class GraphicalComponent(Rect, Component, metaclass=Visual):
         for child in children:
             if isinstance(child, GraphicalComponent):
                 for i, other in enumerate(self._graphical_children):
-                    if other.z > child.z:
+                    if child.z > other.z:
                         self._graphical_children.insert(i, child)
                         break
                 self._graphical_children.append(child)
@@ -306,6 +329,7 @@ class GraphicalComponent(Rect, Component, metaclass=Visual):
     def _key_up(self, key, mod):
         self.key_up_hook(key, mod)
 
+    # TODO: Incorporate z
     def _mouse_enter(self, start, end, buttons):
         self.mouse_enter_hook(start, end, buttons)
         for child in self._graphical_children:
@@ -314,6 +338,7 @@ class GraphicalComponent(Rect, Component, metaclass=Visual):
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child._mouse_enter(rel_start, rel_end, buttons)
 
+    # TODO: Incorporate z
     def _mouse_exit(self, start, end, buttons):
         self.mouse_exit_hook(start, end, buttons)
         for child in self._graphical_children:
@@ -329,15 +354,17 @@ class GraphicalComponent(Rect, Component, metaclass=Visual):
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
                 child._mouse_motion(rel_start, rel_end, buttons)
+                break
 
     def _mouse_down(self, pos, button):
         self.mouse_down_hook(pos, button)
         if self.can_focus and not self.is_focused:
             self.take_focus()
-        for child in self._graphical_children[::-1]:
+        for child in self._graphical_children:
             if child.can_click and not child.is_paused and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
                 child._mouse_down(rel_pos, button)
+                break
 
     def _mouse_up(self, pos, button):
         self.mouse_up_hook(pos, button)
@@ -345,6 +372,7 @@ class GraphicalComponent(Rect, Component, metaclass=Visual):
             if child.can_click and not child.is_paused and child.collide_point(pos):
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
                 child._mouse_up(rel_pos, button)
+                break
 
     def _add_dirty_rect(self, rect):
         if not self.is_dirty and rect not in self._dirty_rects:
@@ -372,7 +400,7 @@ class GraphicalComponent(Rect, Component, metaclass=Visual):
             if self.area + old.area > comb.area:
                 return [comb]
             else:
-                return [self._old_rect, Rect.copy(self)]
+                return [old, Rect.copy(self)]
         elif self._old_visible:
             return [self._old_rect]
         elif self.is_visible:
@@ -380,19 +408,31 @@ class GraphicalComponent(Rect, Component, metaclass=Visual):
         return []
 
     def _redraw_area(self, rect):
+        debug = False
+        if self.__class__.__name__ in ('SetgameApp', 'Menu'):
+            debug = True
+            print(self, 'is redrawing the area', rect)
+        pyrect = rect.as_pygame_rect()
+        if not self.is_transparent:
+            self._display.fill(self.colorkey, pyrect)
+        self._display.blit(self._background, rect.pos, pyrect)
         children = self._graphical_children[:]
-        self._display.fill(self.colorkey, rect.as_pygame_rect())
-        self._display.blit(self._background, rect.pos, rect.as_pygame_rect())
         for child in children:
-            if child.is_visible:
-                if child.is_transparent:
-                    children.extend(child._graphical_children)
-                else:
-                    area = rect.intersect(child)
-                    if area is not None:
-                        area.x -= child.x
-                        area.y -= child.y
-                        self._display.blit(child._display, (child.x + area.x, child.y + area.y), area.as_pygame_rect())
+            if not child.is_visible:
+                continue
+            if child.is_transparent:
+                children.extend(child._graphical_children)
+                continue
+            if debug:
+                print('  Checking intersection with', child)
+            area = rect.intersect(child)
+            if area is None:
+                continue
+            if debug:
+                print('    It\'s a match!')
+            self._display.blit(child._display,
+                               area.pos,
+                               pygame.Rect(area.x - child.x, area.y - child.y, area.w, area.h))
 
     def _clean_display(self):
         self.is_dirty = False
@@ -401,25 +441,24 @@ class GraphicalComponent(Rect, Component, metaclass=Visual):
         self._old_visible = self.is_visible
 
     def _prepare_display(self):
+        if not self.is_dirty:
+            for child in self._graphical_children:
+                if child.is_dirty:
+                    for rect in child._transition_rects():
+                        self._add_dirty_rect(rect)
         for child in self._graphical_children:
-            if not child.is_transparent and child.is_dirty and not self.is_dirty:
-                for rect in child._transition_rects():
-                    self._add_dirty_rect(rect)
             if child.is_visible:
                 child._prepare_display()
             elif child._old_visible:
                 child._clean_display()
         if not self.is_transparent:
-            if self.is_stale:
-                self.refresh()
-                self.is_stale = False
-                self.is_dirty = True
             if self.is_dirty:
+                print(self, 'is not transparent and it is dirty, so it is redrawing itself')
                 self._redraw_area(self.rel_rect())
             else:
                 for rect in self._dirty_rects:
                     self._redraw_area(rect)
-        changed = self.is_dirty or self._dirty_rects
+        changed = self.is_dirty or bool(self._dirty_rects)
         self._clean_display()
         return changed
 
@@ -449,4 +488,6 @@ class GraphicalComponent(Rect, Component, metaclass=Visual):
     def step(self):
         self._recursive_tick_hook()
         self._recursive_track()
+        self._recursive_refresh_stale()
+        self._recursive_transition_hook()
         self._prepare_display()

@@ -20,11 +20,12 @@ from .window import Window
 from .structure import StructuralComponent, Sequence, Hub
 from .text_entry import TextEntryBox, TextField
 from .menu import Button, Menu
+from .drag import DragWidget, SlideWidget
 from .widget import SimpleWidget, Widget
 from .text import Text, TextBox
 from .image import Image
 from .component import GraphicalComponent
-from .visual import visualattr
+from .hook import transition
 
 
 __all__ = [
@@ -32,9 +33,10 @@ __all__ = [
     'StructuralComponent', 'Sequence', 'Hub',
     'TextEntryBox', 'TextField',
     'Button', 'Menu',
+    'DragWidget', 'SlideWidget',
     'SimpleWidget', 'Widget',
     'Text', 'TextBox',
     'Image',
     'GraphicalComponent',
-    'visualattr',
+    'transition',
 ]
