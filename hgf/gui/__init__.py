@@ -17,26 +17,25 @@
 ###############################################################################
 
 from .window import Window
-from .structure import StructuralComponent, Sequence, Hub
+from .structure import ContextSwitcher, Sequence, Hub
+from .menu import Menu
+from .button import Button, LabeledButton
 from .text_entry import TextEntryBox, TextField
-from .menu import Button, Menu
-from .drag import DragWidget, SlideWidget
-from .widget import SimpleWidget, Widget
 from .text import Text, TextBox
 from .image import Image
-from .component import GraphicalComponent
-from .hook import transition
-
+from .drag import DragWidget, SlideWidget
+from .widget import SimpleWidget, Widget
+from .component import GraphicalComponent, FlatComponent, LayeredComponent
 
 __all__ = [
     'Window',
-    'StructuralComponent', 'Sequence', 'Hub',
+    'ContextSwitcher', 'Sequence', 'Hub',
+    'Menu',
+    'Button', 'LabeledButton',
     'TextEntryBox', 'TextField',
-    'Button', 'Menu',
-    'DragWidget', 'SlideWidget',
-    'SimpleWidget', 'Widget',
     'Text', 'TextBox',
     'Image',
-    'GraphicalComponent',
-    'transition',
+    'DragWidget', 'SlideWidget',
+    'SimpleWidget', 'Widget',
+    'GraphicalComponent', 'FlatComponent', 'LayeredComponent',
 ]

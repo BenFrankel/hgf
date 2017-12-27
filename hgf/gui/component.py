@@ -16,119 +16,78 @@
 #                                                                             #
 ###############################################################################
 
-from .hook import _HookHandler, transition
+import pygame
 
+from hgf.double_buffer import double_buffer, responsive
 from ..component import Component
 from ..util import Rect, keyboard
 
-import pygame
 
-
-class GraphicalComponent(Rect, Component, metaclass=_HookHandler):
+class GraphicalComponent(Rect, Component):
     def __init__(self,
-                 x=0, y=0, w=0, h=0,
-                 visible=True, hover=True, click=True, focus=False,
-                 opacity=2,
+                 x=0, y=0, w=0, h=0, z=0,
+                 show=True, hover=True, solid=True, click=True,
+                 opacity=2, bgcolor=None,
                  **kwargs):
         super().__init__(x=x, y=y, w=w, h=h, pause=False, **kwargs)
 
-        # User interaction flags
+        # User interaction enabling flags
         self.can_hover = hover
         self.can_click = click
-        self.can_focus = focus
+        self.is_solid = solid
 
-        # Visual attributes
-        self.is_visible = visible
+        # Visual flags
+        self.is_visible = show
 
-        # State flags
+        # Input flags
         self.is_hovered = False
-        self.is_focused = False
-        self.is_stale = False  # Stale components will be refreshed
 
-        # Graphical hierarchy
-        self._graphical_children = []
-        self._z = 0
-
-        # Surfaces
+        # Rendering
         self._opacity = opacity
-        if self.is_transparent:
-            self._colorkey = None
-            self._background = None
-            self._display = None
-        elif self.is_translucent:
-            self._colorkey = (0, 0, 0, 0)
-            self._background = pygame.Surface(self.size, pygame.SRCALPHA)
-            self._display = pygame.Surface(self.size, pygame.SRCALPHA)
-        else:  # self.is_opaque
-            self._colorkey = (0, 0, 0)
-            self._background = pygame.Surface(self.size)
-            self._display = pygame.Surface(self.size)
-        if self._colorkey is not None:
-            self._background.set_colorkey(self.colorkey)
-            self._display.set_colorkey(self.colorkey)
+        self._colorkey = (0, 0, 0) if self.is_opaque else (0, 0, 0, 0) if self.is_translucent else None
+        self._bgcolor = bgcolor
+        self._background = None
 
-        # Dirty rectangle status
-        self._is_dirty = False
-        self._dirty_rects = []
-        self._dirty_area = 0
+        # Dirty state
+        self._dirty_flag = True
 
-        self._old_rect = None
-        self._old_visible = None
+        self._graphical_children = []
+        self.z = z
 
-    # Refresh should never modify size or position
-    # It is expected to draw on top of the existing rect
-    def refresh(self): pass
+    def on_show(self): pass
 
-    def layout_hook(self): pass
+    def on_hide(self): pass
 
-    def show_hook(self): pass
+    def on_key_down(self, unicode, key, mods): pass
 
-    def hide_hook(self): pass
+    def on_key_up(self, key, mods): pass
 
-    def activate_hook(self): pass
+    def on_mouse_motion(self, start, end, buttons, start_hovered, end_hovered): pass
 
-    def deactivate_hook(self): pass
+    def on_mouse_down(self, pos, button, hovered): pass
 
-    def take_focus_hook(self): pass
+    def on_mouse_up(self, pos, button, hovered): pass
 
-    def lose_focus_hook(self): pass
+    @responsive(init=True)
+    def refresh_background(self): pass
 
-    def key_down_hook(self, unicode, key, mods): pass
+    @double_buffer
+    class w: pass
 
-    def key_up_hook(self, key, mods): pass
+    @double_buffer
+    class h: pass
 
-    def mouse_enter_hook(self, start, end, buttons): pass
+    @double_buffer
+    class x: pass
 
-    def mouse_exit_hook(self, start, end, buttons): pass
+    @double_buffer
+    class y: pass
 
-    def mouse_motion_hook(self, start, end, buttons): pass
-
-    def mouse_down_hook(self, pos, button): pass
-
-    def mouse_up_hook(self, pos, button): pass
-
-    def track_hook(self): pass
-
-    @transition
-    def is_visible(self, after):
-        if after:
-            self.show_hook()
-        else:
-            self.hide_hook()
-
-    @transition
-    def w(self):
-        self.layout_hook()
-
-    @transition
-    def h(self):
-        self.layout_hook()
-
-    @transition
-    def x(self): pass
-
-    @transition
-    def y(self): pass
+    @double_buffer
+    class z:
+        def on_transition(self):
+            if not self.is_root:
+                self.parent._on_child_changed_z(self)
 
     @property
     def is_transparent(self):
@@ -143,38 +102,13 @@ class GraphicalComponent(Rect, Component, metaclass=_HookHandler):
         return self._opacity == 2
 
     @property
-    def is_dirty(self):
-        if self._old_visible is None:
-            return self.is_visible
-        return self._is_dirty or self._old_visible != self.is_visible
-
-    @is_dirty.setter
-    def is_dirty(self, other):
-        if other and not self.is_root:
-            for rect in self._dirty_rects:
-                self._clean_dirty_rects(rect)
-        self._is_dirty = other
-
-    @property
-    def z(self):
-        return self._z
-
-    @z.setter
-    def z(self, other):
-        self._z = other
-        if not self.is_root:
-            self.parent._child_changed_z(self)
-
-    @property
     def colorkey(self):
         return self._colorkey
 
     @colorkey.setter
     def colorkey(self, other):
-        if self._colorkey != other:
-            self._colorkey = other
-            self._background.set_colorkey(other)
-            self._display.set_colorkey(other)
+        self._colorkey = other
+        self._background.set_colorkey(other)
 
     @property
     def background(self):
@@ -182,17 +116,25 @@ class GraphicalComponent(Rect, Component, metaclass=_HookHandler):
 
     @background.setter
     def background(self, other):
-        if self._background.get_size() != other.get_size():
+        if self._background is None or self._background.get_size() != other.get_size():
             self.size = other.get_size()
-            if self.is_translucent:
-                self._display = pygame.Surface(other.get_size(), pygame.SRCALPHA)
-            elif self.is_opaque:
-                self._display = pygame.Surface(other.get_size())
-        if self._colorkey is not None:
-            self._background.set_colorkey(self.colorkey)
-            self._display.set_colorkey(self.colorkey)
         self._background = other
-        self.is_dirty = True
+        if self._colorkey is not None:
+            self._background.set_colorkey(self._colorkey)
+        self._set_dirty(True)
+
+    def on_disown(self):
+        if self.old_is_visible and self.old_w is not None:
+            self.parent._add_dirty_rect(Rect(self.old_x, self.old_y, self.old_w, self.old_h))
+        self._set_dirty(self.is_visible)
+
+    def on_is_visible_transition(self):
+        super().on_is_visible_transition()
+        self._set_dirty(True)
+
+    def on_is_active_transition(self):
+        super().on_is_active_transition()
+        self._set_dirty(True)
 
     def abs_pos(self):
         if self.is_root:
@@ -203,49 +145,157 @@ class GraphicalComponent(Rect, Component, metaclass=_HookHandler):
     def abs_rect(self):
         return Rect(*self.abs_pos(), self.w, self.h)
 
-    def _recursive_layout_hook(self):
-        self.layout_hook()
+    def _frontmost_at(self, pos):
         for child in self._graphical_children:
-            if child.is_loaded:
-                child._recursive_layout_hook()
+            if child.is_active and child.is_solid and child.collide_point(pos):
+                return child._frontmost_at((pos[0] - child.pos[0],
+                                            pos[1] - child.pos[1]))
+        return self if self.is_solid else None
 
-    # Should only be called once, at setup
-    def _recursive_refresh(self):
-        for child in self._graphical_children:
-            if child.is_loaded:
-                child._recursive_refresh()
-        self.refresh()
+    def _key_down(self, unicode, key, mod):
+        try:
+            self.handle_message(self, self.controls_get(keyboard.name_from_pygame(key, mod)))
+        except KeyError:
+            pass
+        self.on_key_down(unicode, key, mod)
 
-    def _recursive_refresh_stale(self):
-        for child in self._graphical_children:
-            if child.is_loaded:
-                child._recursive_refresh_stale()
-        if self.is_stale:
-            self.refresh()
-            self.is_stale = False
-            self.is_dirty = True
+    # TODO: What about message for release by name in controls? (as in _key_down)
+    def _key_up(self, key, mods):
+        self.on_key_up(key, mods)
 
-    def prepare(self):
-        super().prepare()
-        self._recursive_layout_hook()
-        self._recursive_refresh()
+    def _mouse_motion(self, start, end, buttons, start_component, end_component):
+        self.on_mouse_motion(start, end, buttons, start_component is self, end_component is self)
 
-    # Should only be called when style / options are reloaded
-    def _recursive_stale(self):
-        for child in self._graphical_children:
-            if child.is_loaded:
-                child._recursive_stale()
-        self.is_stale = True
+    def _mouse_down(self, pos, button, component):
+        self.on_mouse_down(pos, button, component is self)
 
-    def reload_style(self):
-        super().reload_style()
-        self._recursive_stale()
+    def _mouse_up(self, pos, button, component):
+        self.on_mouse_up(pos, button, component is self)
 
-    def reload_options(self):
-        super().reload_options()
-        self._recursive_stale()
+    def _transition_rects(self):
+        if self.old_is_active and self.is_active and self.old_is_visible and self.is_visible:
+            old = Rect(self.old_x, self.old_y, self.old_w, self.old_h)
+            comb = Rect(min(self.x, old.x), min(self.y, old.y))
+            comb.w = max(self.right, old.right) - comb.x
+            comb.h = max(self.bottom, old.bottom) - comb.y
+            if self.area + old.area > comb.area:
+                return [comb]
+            else:
+                return [old, Rect.copy(self)]
+        elif self.old_is_active and self.old_is_visible:
+            return [Rect(self.old_x, self.old_y, self.old_w, self.old_h)]
+        elif self.is_active and self.is_visible:
+            return [Rect.copy(self)]
+        return []
 
-    def _child_changed_z(self, child):
+    def _set_dirty(self, other):
+        self._dirty_flag = other
+
+    def _step_reset(self):
+        self._dirty_rects = []
+        self._dirty_area = 0
+        self._set_dirty(False)
+        super()._step_reset()
+
+    def _debug_str(self):
+        return '{} [state: {}{}{}{}, interaction: {}{}, opacity: {}]'.format(
+            self,
+            'a' if self.is_active else '-',
+            'p' if self.is_paused else '-',
+            'f' if self.is_frozen else '-',
+            'v' if self.is_visible else '-',
+            'c' if self.can_click else '-',
+            'h' if self.can_hover else '-',
+            self._opacity,
+        )
+
+    def _recursive_debug_str(self, depth=0):
+        return '{}{}\n{}'.format(
+            '| ' * depth,
+            self._debug_str(),
+            ''.join(child._recursive_debug_str(depth + 1) for child in self._graphical_children if child.is_loaded)
+        )
+
+
+class FlatComponent(GraphicalComponent):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+    def register(self, *children):
+        if any(isinstance(child, GraphicalComponent) for child in children):
+            raise TypeError('{} cannot register GraphicalComponent as a child'.format(self.__class__.__name__))
+        super().register(*children)
+
+    _display = GraphicalComponent.background
+
+
+class LayeredComponent(GraphicalComponent):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        # Rendering
+        self._display = None
+
+        # Dirty rectangles state
+        self._dirty_area = 0
+        self._dirty_rects = []
+
+    @responsive(init=True, priority=-1)
+    def refresh_proportions(self):
+        if self.is_translucent:
+            self._background = pygame.Surface(self.size, pygame.SRCALPHA)
+            self._display = pygame.Surface(self.size, pygame.SRCALPHA)
+        elif self.is_opaque:
+            self._background = pygame.Surface(self.size)
+            self._display = pygame.Surface(self.size)
+        if self._colorkey is not None:
+            self._background.set_colorkey(self._colorkey)
+            self._display.set_colorkey(self._colorkey)
+            if self.is_opaque and self._bgcolor is None:
+                self._bgcolor = (255, 255, 255)
+        if not self.is_transparent and self._bgcolor is not None:
+            self._background.fill(self._bgcolor)
+
+    @responsive(init=True, children_first=True)
+    def refresh_layout(self): pass
+
+    @GraphicalComponent.background.setter
+    def background(self, other):
+        if self.is_transparent:
+            raise ValueError('Cannot set background for transparent component: {}'.format(self))
+        if self.is_opaque and (other.get_flags() & pygame.SRCALPHA or other.get_alpha() is not None):
+            raise ValueError('Cannot set translucent background for opaque component: {}'.format(self))
+        if self._background.get_size() != other.get_size():
+            self.size = other.get_size()
+            if self.is_translucent:
+                self._display = pygame.Surface(other.get_size(), pygame.SRCALPHA)
+            elif self.is_opaque:
+                self._display = pygame.Surface(other.get_size())
+        if self._colorkey is not None:
+            self._background.set_colorkey(self._colorkey)
+            self._display.set_colorkey(self._colorkey)
+        self._background = other
+        self._set_dirty(True)
+
+    @GraphicalComponent.colorkey.setter
+    def colorkey(self, other):
+        self._colorkey = other
+        self._background.set_colorkey(other)
+        self._display.set_colorkey(other)
+
+    def on_x_transition(self):
+        self._set_dirty(True)
+
+    def on_y_transition(self):
+        self._set_dirty(True)
+
+    def on_w_transition(self):
+        self.refresh_proportions_flag = True
+
+    def on_h_transition(self):
+        self.refresh_proportions_flag = True
+
+    def _on_child_changed_z(self, child):
         self._graphical_children.remove(child)
         for i, other in enumerate(self._graphical_children):
             if other.z > child.z:
@@ -260,130 +310,62 @@ class GraphicalComponent(Rect, Component, metaclass=_HookHandler):
                     if child.z > other.z:
                         self._graphical_children.insert(i, child)
                         break
-                self._graphical_children.append(child)
+                else:
+                    self._graphical_children.append(child)
 
     def unregister(self, *children):
         super().unregister(*children)
         for child in children:
-            try:
-                self._graphical_children.remove(child)
-            except ValueError:
-                pass
+            if isinstance(child, GraphicalComponent):
+                try:
+                    self._graphical_children.remove(child)
+                except ValueError:
+                    pass
 
-    def show(self):
-        self.is_visible = True
-        self.show_hook()
-
-    def _recursive_lose_focus(self):
-        if self.is_focused:
-            self.lose_focus()
-        for child in self._graphical_children:
-            child._recursive_lose_focus()
-
-    def hide(self):
-        self.is_visible = False
-        self._recursive_lose_focus()
-        self.hide_hook()
-
-    def toggle_show(self):
-        if self.is_visible:
-            self.hide()
-        else:
-            self.show()
-
-    def activate(self):
-        self.show()
-        self.unpause()
-        self.activate_hook()
-
-    def deactivate(self):
-        self.hide()
-        self.pause()
-        self.deactivate_hook()
-
-    def take_focus(self):
-        self._app.give_focus(self)
-        self.take_focus_hook()
-
-    def lose_focus(self):
-        self._app.remove_focus(self)
-        self.lose_focus_hook()
-
-    def disowned_hook(self):
-        if self._old_visible and self._old_rect is not None:
-            try:
-                self.parent._add_dirty_rect(self._old_rect)
-            except AttributeError:
-                pass
+    def on_disown(self):
+        super().on_disown()
         for rect in self._dirty_rects:
             self._clean_dirty_rects(rect)
-        self.is_dirty = self.is_visible
 
-    def _key_down(self, unicode, key, mod):
-        try:
-            self.handle_message(self, self.controls_get(keyboard.name_from_pygame(key, mod)))
-        except KeyError:
-            pass
-        self.key_down_hook(unicode, key, mod)
-
-    def _key_up(self, key, mod):
-        self.key_up_hook(key, mod)
-
-    # TODO: Incorporate z
-    def _mouse_enter(self, start, end, buttons):
-        self.mouse_enter_hook(start, end, buttons)
+    def _mouse_motion(self, start, end, buttons, start_component, end_component):
+        super()._mouse_motion(start, end, buttons, start_component, end_component)
         for child in self._graphical_children:
-            if child.can_hover and not child.is_paused and child.collide_point(end):
+            if child.is_active and child.can_hover and not child.is_frozen:
                 rel_start = (start[0] - child.x, start[1] - child.y)
                 rel_end = (end[0] - child.x, end[1] - child.y)
-                child._mouse_enter(rel_start, rel_end, buttons)
+                child._mouse_motion(rel_start, rel_end, buttons, start_component, end_component)
 
-    # TODO: Incorporate z
-    def _mouse_exit(self, start, end, buttons):
-        self.mouse_exit_hook(start, end, buttons)
+    def _mouse_down(self, pos, button, component):
+        super()._mouse_down(pos, button, component)
         for child in self._graphical_children:
-            if child.can_hover and not child.is_paused and child.collide_point(start):
-                rel_start = (start[0] - child.x, start[1] - child.y)
-                rel_end = (end[0] - child.x, end[1] - child.y)
-                child._mouse_exit(rel_start, rel_end, buttons)
-
-    def _mouse_motion(self, start, end, buttons):
-        self.mouse_motion_hook(start, end, buttons)
-        for child in self._graphical_children:
-            if child.can_hover and not child.is_paused and child.collide_point(start) and child.collide_point(end):
-                rel_start = (start[0] - child.x, start[1] - child.y)
-                rel_end = (end[0] - child.x, end[1] - child.y)
-                child._mouse_motion(rel_start, rel_end, buttons)
-                break
-
-    def _mouse_down(self, pos, button):
-        self.mouse_down_hook(pos, button)
-        if self.can_focus and not self.is_focused:
-            self.take_focus()
-        for child in self._graphical_children:
-            if child.can_click and not child.is_paused and child.collide_point(pos):
+            if child.can_click and not child.is_frozen:
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
-                child._mouse_down(rel_pos, button)
-                break
+                child._mouse_down(rel_pos, button, component)
 
-    def _mouse_up(self, pos, button):
-        self.mouse_up_hook(pos, button)
+    def _mouse_up(self, pos, button, component):
+        super()._mouse_up(pos, button, component)
         for child in self._graphical_children:
-            if child.can_click and not child.is_paused and child.collide_point(pos):
+            if child.can_click and not child.is_frozen:
                 rel_pos = (pos[0] - child.x, pos[1] - child.y)
-                child._mouse_up(rel_pos, button)
-                break
+                child._mouse_up(rel_pos, button, component)
+
+    def _set_dirty(self, other):
+        super()._set_dirty(other)
+        if other and not self.is_root:
+            for rect in self._dirty_rects:
+                self._clean_dirty_rects(rect)
 
     def _add_dirty_rect(self, rect):
-        if not self.is_dirty and rect not in self._dirty_rects:
-            area = rect.area
-            if area + self._dirty_area > self.area:
-                self.is_dirty = True
-                self._dirty_area += area
-            else:
-                self._dirty_rects.append(rect)
-                if not self.is_root:
-                    self.parent._add_dirty_rect(Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h))
+        if self._dirty_flag or rect in self._dirty_rects:
+            return
+        area = rect.area
+        if area + self._dirty_area > self.area:
+            self._set_dirty(True)
+        else:
+            self._dirty_area += area
+            self._dirty_rects.append(rect)
+            if not self.is_root:
+                self.parent._add_dirty_rect(Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h))
 
     def _clean_dirty_rects(self, rect):
         self._dirty_rects.remove(rect)
@@ -391,103 +373,44 @@ class GraphicalComponent(Rect, Component, metaclass=_HookHandler):
         if not self.is_root:
             self.parent._clean_dirty_rects(Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h))
 
-    def _transition_rects(self):
-        if self._old_visible and self.is_visible:
-            old = self._old_rect
-            comb = Rect(min(self.x, old.x), min(self.y, old.y))
-            comb.w = max(self.right, old.right) - comb.x
-            comb.h = max(self.bottom, old.bottom) - comb.y
-            if self.area + old.area > comb.area:
-                return [comb]
-            else:
-                return [old, Rect.copy(self)]
-        elif self._old_visible:
-            return [self._old_rect]
-        elif self.is_visible:
-            return [Rect.copy(self)]
-        return []
-
     def _redraw_area(self, rect):
-        debug = False
-        if self.__class__.__name__ in ('SetgameApp', 'Menu'):
-            debug = True
-            print(self, 'is redrawing the area', rect)
         pyrect = rect.as_pygame_rect()
-        if not self.is_transparent:
+        if self.is_translucent:
             self._display.fill(self.colorkey, pyrect)
         self._display.blit(self._background, rect.pos, pyrect)
-        children = self._graphical_children[:]
+        can_see = lambda child: child.is_active and child.is_visible
+        children = list(filter(can_see, self._graphical_children))
         for child in children:
-            if not child.is_visible:
-                continue
             if child.is_transparent:
-                children.extend(child._graphical_children)
+                children.extend(filter(can_see, child._graphical_children))
                 continue
-            if debug:
-                print('  Checking intersection with', child)
+            # FIXME: What if child comes from an offset transparent child?
+            # FIXME: Its rect will be relative to the transparent child.
             area = rect.intersect(child)
-            if area is None:
+            if area is None or area.w <= 0 or area.h <= 0:
                 continue
-            if debug:
-                print('    It\'s a match!')
             self._display.blit(child._display,
                                area.pos,
-                               pygame.Rect(area.x - child.x, area.y - child.y, area.w, area.h))
+                               pygame.Rect(area.x - child.x,
+                                           area.y - child.y,
+                                           area.w,
+                                           area.h))
 
-    def _clean_display(self):
-        self.is_dirty = False
-        self._dirty_rects = []
-        self._old_rect = Rect.copy(self)
-        self._old_visible = self.is_visible
-
-    def _prepare_display(self):
-        if not self.is_dirty:
+    def _step_output(self):
+        super()._step_output()
+        # Identify dirty rectangles
+        if not self._dirty_flag:
             for child in self._graphical_children:
-                if child.is_dirty:
+                if (child.old_is_active and child.old_is_visible or child.is_active and child.is_visible) and child._dirty_flag:
                     for rect in child._transition_rects():
                         self._add_dirty_rect(rect)
-        for child in self._graphical_children:
-            if child.is_visible:
-                child._prepare_display()
-            elif child._old_visible:
-                child._clean_display()
+
+        # Redraw dirty rectangles
         if not self.is_transparent:
-            if self.is_dirty:
-                print(self, 'is not transparent and it is dirty, so it is redrawing itself')
+            if self._dirty_flag:
                 self._redraw_area(self.rel_rect())
             else:
                 for rect in self._dirty_rects:
                     self._redraw_area(rect)
-        changed = self.is_dirty or bool(self._dirty_rects)
-        self._clean_display()
-        return changed
 
-    def _recursive_track(self):
-        self._track()
-        for child in self._graphical_children:
-            if not child.is_paused:
-                child._recursive_track()
-
-    # Catch mouse events not caught by Pygame
-    def _track(self):
-        self.track_hook()
-        pos = pygame.mouse.get_pos()
-        if not self.is_root:
-            pos = tuple(x1 - x2 for x1, x2 in zip(pos, self.parent.abs_pos()))
-        if self.is_hovered != self.collide_point(pos):
-            rel = pygame.mouse.get_rel()
-            self.is_hovered = not self.is_hovered
-            if self.is_hovered:
-                self._mouse_enter((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
-            else:
-                self._mouse_exit((pos[0] - rel[0], pos[1] - rel[1]), pos, pygame.mouse.get_pressed())
-        if self.is_hovered and not pygame.mouse.get_focused():
-            self.is_hovered = False
-            self._mouse_exit(pos, pos, pygame.mouse.get_pressed())
-
-    def step(self):
-        self._recursive_tick_hook()
-        self._recursive_track()
-        self._recursive_refresh_stale()
-        self._recursive_transition_hook()
-        self._prepare_display()
+        return self._dirty_flag or self._dirty_rects

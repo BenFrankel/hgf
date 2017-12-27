@@ -279,28 +279,6 @@ class App(Window):
     def load_controls_from(self, filename):
         self._config.load_controls_from(filename)
 
-    def key_down_hook(self, unicode, key, mod):
-        if self._focus_stack:
-            self._focus_stack[-1]._key_down(unicode, key, mod)
-
-    def key_up_hook(self, key, mod):
-        if self._focus_stack:
-            self._focus_stack[-1]._key_up(key, mod)
-
-    def give_focus(self, component):
-        component.is_focused = True
-        if self._focus_stack:
-            self._focus_stack[-1].is_focused = False
-        try:
-            self._focus_stack.remove(component)
-        except ValueError:
-            pass
-        self._focus_stack.append(component)
-
-    def remove_focus(self, component):
-        component.is_focused = False
-        self._focus_stack.remove(component)
-
 
 class AppManager:
     def __init__(self, name, factory=App):
@@ -327,7 +305,7 @@ class AppManager:
         if not self._is_loaded:
             raise RuntimeError('Cannot launch app \'{}\' without loading its manager first'.format(self.name))
         app = self.factory(self)
-        app.prepare()
+        app.load()
         return app
 
     def get_font(self, name):

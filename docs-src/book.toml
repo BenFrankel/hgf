@@ -1,0 +1,4 @@
+title = "hgf Documentation"
+author = "Ben Frankel"
+description = "Official documentation for hgf (Hierarchical GUI Framework)."
+dest = "../docs"

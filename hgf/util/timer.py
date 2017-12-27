@@ -120,6 +120,9 @@ class Time:
     def in_ms(self):
         return self._t
 
+    def copy(self):
+        return Time(d=self.d, h=self.h, m=self.m, s=self.s, ms=self.ms)
+
     def __add__(self, other):
         return Time(ms=self._t + other._t)
 

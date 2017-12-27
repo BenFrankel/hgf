@@ -4,16 +4,24 @@
 #+STARTUP: showall
 
 
-* Version 0.3.0 (Future)
+* Planned
 
 ** Restructuring [0/1]
 
-- [ ] Overhaul of the style / options system to use CSS-style selectors (improve flexibility and familiarity of the system)
+- [ ] Overhaul of the style / options system to use CSS-style (or a subset) selectors
+- [ ] Default values for all built-in configuration
 
+* Version 0.2.1 (Future)
+
+** New Graphical Components [0/3]
+
+- [ ] Scrollbar
+- [ ] Frame
+- [ ] TextFrame
 
 * Version 0.2.0 (In Progress)
 
-** New Graphical Components [6/9]
+** New Graphical Components [6/6]
 
 - [X] TextBox
 - [X] TextEntryBox
@@ -21,9 +29,6 @@
 - [X] Widget (old Widget renamed to SimpleWidget)
 - [X] DragWidget
 - [X] SlideWidget
-- [ ] Scrollbar
-- [ ] Frame
-- [ ] TextFrame
 
 ** New Timing Components [7/7]
 
@@ -39,7 +44,7 @@
 
 - [X] Hook functions
 - [X] Widget -> SimpleWidget
-- [X] Component -> GraphicalComponent
+- [X] Component -> Component, GraphicalComponent, FlatComponent, LayeredComponent
 - [X] Switch -> StructuralComponent
 
 ** Structural Changes [3/3]
@@ -48,13 +53,12 @@
 - [X] ~appdata/<appname>/dir.json~ changed to ~appdata/<appname>.json~
 - [X] Method to recursively freeze a subtree (pausing timers & other time-tracking tasks)
 
-** Convenience [4/5]
+** Convenience [4/4]
 
 - [X] Activate / deactivate
-- [X] Toggle show / pause
-- [X] Simultaneously register and load (~register_load~, ~register_prepare~)
-- [X] Event loop is handled implicitly on application launch
-- [ ] Default values for all built-in configurables
+- [X] Toggle show / pause / active
+- [X] Simultaneously register and load (~register_load~)
+- [X] Event loop is handled by hgf on application launch
 
 ** Miscellaneous [0/1]
 

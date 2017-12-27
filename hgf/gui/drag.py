@@ -31,20 +31,21 @@ class DragWidget(SimpleWidget):
     def load_style(self):
         self._bg_factory = self.style_get('background')
 
-    def refresh(self):
+    def refresh_background(self):
         self.background = self._bg_factory(self.size)
         self.background.set_alpha(100)
 
-    def mouse_state_transition(self, before, after):
-        if after == SimpleWidget.PRESS:
+    def on_mouse_state_transition(self):
+        super().on_mouse_state_transition()
+        if self.mouse_state == SimpleWidget.PRESS:
             mx, my = pygame.mouse.get_pos()
             ax, ay = self.abs_pos()
             self._pressed_pos = mx - ax, my - ay
-        elif before == SimpleWidget.PRESS:
+        elif self.old_mouse_state == SimpleWidget.PRESS:
             self._pressed_pos = None
 
-    def tick_hook(self):
-        super().tick_hook()
+    def on_tick(self, elapsed):
+        super().on_tick(elapsed)
         if self._pressed_pos is not None:
             mx, my = pygame.mouse.get_pos()
             ax, ay = self.parent.abs_pos()
@@ -69,6 +70,30 @@ class SlideWidget(SimpleWidget):
 
         self._bg_factory = None
 
+    def load_style(self):
+        self._bg_factory = self.style_get('background')
+
+    def refresh_background(self):
+        self.background = self._bg_factory(self.size)
+
+    def on_mouse_motion(self, start, end, buttons, start_hovered, end_hovered):
+        super().on_mouse_motion(start, end, buttons, start_hovered, end_hovered)
+        if self.mouse_state == SimpleWidget.PRESS or self.mouse_state == SimpleWidget.PULL:
+            x, y = end
+            a1, a2 = self._axis_start
+
+            v1, v2 = a1 - x, a2 - y
+            length = (v1**2 + v2**2) ** 0.5
+
+            if length == 0:
+                self.t = 0
+            else:
+                u1, u2 = self._unit_tangent
+                self.t = (u1 * v1 + u2 * v2) / length
+
+            self.t = min(max(self.t, 1), 0)
+            self._update_pos_from_t()
+
     def set_axis(self, start, end):
         a1, a2 = self._axis_start = start
         b1, b2 = self._axis_end = end
@@ -83,27 +108,3 @@ class SlideWidget(SimpleWidget):
     def _update_pos_from_t(self):
         self.midx = (1 - self.t) * self._axis_start[0] + self.t * self._axis_end[0]
         self.midy = (1 - self.t) * self._axis_start[1] + self.t * self._axis_end[1]
-
-    def load_style(self):
-        self._bg_factory = self.style_get('background')
-
-    def refresh(self):
-        self.background = self._bg_factory(self.size)
-
-    def track_hook(self):
-        super().track_hook()
-        if self.mouse_state == SimpleWidget.PRESS or self.mouse_state == SimpleWidget.PULL:
-            x, y = pygame.mouse.get_pos()
-            a1, a2 = self._axis_start
-
-            v1, v2 = a1 - x, a2 - y
-            length = (v1**2 + v2**2) ** 0.5
-
-            if length == 0:
-                self.t = 0
-            else:
-                u1, u2 = self._unit_tangent
-                self.t = (u1 * v1 + u2 * v2) / length
-
-            self.t = min(max(self.t, 1), 0)
-            self._update_pos_from_t()

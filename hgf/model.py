@@ -29,12 +29,12 @@ class Subject:
 
         self.is_loaded = False
 
-    def load_hook(self): pass
+    def on_load(self): pass
 
-    def update_hook(self): pass
+    def on_update(self): pass
 
     def load(self):
-        self.load_hook()
+        self.on_load()
         self.is_loaded = True
 
     def add_observer(self, observer):
@@ -60,7 +60,7 @@ class Subject:
         return State(self.state_properties, tuple(getattr(self, attr) for attr in self.state_properties))
 
     def update(self):
-        self.update_hook()
+        self.on_update()
         for child in self._children:
             child.update()
         new_state = self._get_state()

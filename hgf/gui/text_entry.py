@@ -18,7 +18,7 @@
 
 from .widget import SimpleWidget, Widget
 from .text import TextBox
-from .component import GraphicalComponent
+from .component import FlatComponent
 
 from ..timing import Pulse
 from ..util import Time, keyboard
@@ -78,7 +78,7 @@ def _edit_region(text, start, end, unicode, key, mod):
     return start + len(unicode), text[:start] + unicode + text[end:]
 
 
-class Cursor(GraphicalComponent):
+class Cursor(FlatComponent):
     BLINK_RATE = '0.500'
 
     MSG_BLINK = 'blink'
@@ -88,7 +88,7 @@ class Cursor(GraphicalComponent):
         self.blinker = None
         self._bg_factory = None
 
-    def load_hook(self):
+    def on_load(self):
         self.blinker = Pulse(Cursor.MSG_BLINK)
         self.register_load(self.blinker)
 
@@ -99,12 +99,12 @@ class Cursor(GraphicalComponent):
         self.blinker.frequency = Time.parse(self.parent.options_get('cursor-blink-rate',
                                                                     Cursor.BLINK_RATE))
 
-    def refresh(self):
+    def refresh_background(self):
         self.w = max(self.parent.line_height // 10, 1)
         self.h = self.parent.line_height
         self.background = self._bg_factory(self.size)
 
-    def activate_hook(self):
+    def on_activate(self):
         self.blinker.start()
 
     def start(self):
@@ -119,7 +119,7 @@ class Cursor(GraphicalComponent):
             super().handle_message(sender, message, **params)
 
 
-class Highlight(GraphicalComponent):
+class Highlight(FlatComponent):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.start = (0, 0)
@@ -129,7 +129,7 @@ class Highlight(GraphicalComponent):
     def load_style(self):
         self.bgcolor = self.parent.style_get('highlight-bg-color')
 
-    def refresh(self):
+    def refresh_background(self):
         lh = self.parent.line_height
         surf = pygame.Surface(self.size, pygame.SRCALPHA)
         if self.start[1] == self.end[1]:
@@ -218,7 +218,7 @@ class TextEntryBox(Widget, TextBox):
     MSG_PASTE = 'text-paste'
 
     def __init__(self, **kwargs):
-        super().__init__(focus=True, **kwargs)
+        super().__init__(**kwargs)
         # Cursor
         self.cursor = None
         self._cursor_place = CursorPlacement()
@@ -227,34 +227,33 @@ class TextEntryBox(Widget, TextBox):
         self.highlight = None
         self._hl_cursor_place = None
 
-    def load_hook(self):
-        super().load_hook()
-        self.cursor = Cursor()
-        self.cursor.z = 10
-        self.cursor.deactivate()
+    def on_load(self):
+        super().on_load()
+        self.cursor = Cursor(z=10, active=False)
         self.register_load(self.cursor)
 
-        self.highlight = Highlight()
-        self.highlight.z = -10
-        self.highlight.deactivate()
+        self.highlight = Highlight(z=-10, active=False)
         self.register_load(self.highlight)
 
-    def layout_hook(self):
-        super().layout_hook()
+    def refresh_proportions(self):
+        super().refresh_proportions()
         self.highlight.w = self.w - 2 * self.margin
         self.highlight.h = self.h - 2 * self.margin
+
+    def refresh_layout(self):
+        super().refresh_layout()
         self.highlight.pos = self.margin, self.margin
 
-    def take_focus_hook(self):
+    def on_focus(self):
         self.cursor.activate()
         self._place_cursor_by_index(self._cursor_place, self._cursor_place.index)
 
-    def lose_focus_hook(self):
-        super().lose_focus_hook()
+    def on_unfocus(self):
+        super().on_unfocus()
         self.cursor.deactivate()
 
-    def mouse_down_hook(self, pos, button):
-        super().mouse_down_hook(pos, button)
+    def on_mouse_down(self, pos, button, hovered):
+        super().on_mouse_down(pos, button, hovered)
         if not pygame.key.get_mods() & pygame.KMOD_SHIFT:
             self._hl_cursor_place = None
         elif self._hl_cursor_place is None:
@@ -267,8 +266,8 @@ class TextEntryBox(Widget, TextBox):
             self._hl_cursor_place = None
         self.cursor.start()
 
-    def mouse_motion_hook(self, start, end, buttons):
-        super().mouse_motion_hook(start, end, buttons)
+    def on_mouse_motion(self, start, end, buttons, start_hovered, end_hovered):
+        super().on_mouse_motion(start, end, buttons, start_hovered, end_hovered)
         if self.mouse_state == SimpleWidget.PRESS:
             started_highlighting = False
             if self._hl_cursor_place is None:
@@ -310,8 +309,8 @@ class TextEntryBox(Widget, TextBox):
                     self._place_cursor_by_index(self._cursor_place, index)
         self.cursor.start()
 
-    def key_down_hook(self, unicode, key, mod):
-        super().key_down_hook(unicode, key, mod)
+    def on_key_down(self, unicode, key, mod):
+        super().on_key_down(unicode, key, mod)
         self._handle_key(unicode, key, mod)
 
     def handle_message(self, sender, message, **params):
@@ -436,35 +435,37 @@ class TextEntryBox(Widget, TextBox):
 
         cursor.raw_x, cursor.raw_y = cursor.pos = self._grid_pos(cursor.row, cursor.col)
 
-    def tick_hook(self):
-        super().tick_hook()
-        if self.is_focused:
-            if self._hl_cursor_place is not None:
-                if not self.highlight.is_visible:
-                    self.highlight.activate()
-                    self.cursor.deactivate()
-                left, right = self._hl_cursor_place, self._cursor_place
-                if left > right:
-                    left, right = right, left
-                if self.highlight.start != left.pos or self.highlight.end != right.pos:
-                    self.highlight.start = left.x - self.margin, left.y - self.margin
-                    self.highlight.end = right.x - self.margin, right.y - self.margin
-                    self.highlight.is_stale = True
-                else:
-                    self.highlight.start = left.x - self.margin, left.y - self.margin
-                    self.highlight.end = right.x - self.margin, right.y - self.margin
-            elif self.highlight.is_visible:
-                self.highlight.deactivate()
-                self.cursor.activate()
-            self.cursor.midtop = self._cursor_place.pos
+    # TODO: Go over all the on_tick (& tick, & tick_hook) methods. Maybe they no longer match the intended purpose.
+    # TODO: Implement some kind of notion of "focus"
+    # def on_tick(self, elapsed):
+    #     super().on_tick(elapsed)
+    #     if self.is_focused:
+    #         if self._hl_cursor_place is not None:
+    #             if not self.highlight.is_visible:
+    #                 self.highlight.activate()
+    #                 self.cursor.deactivate()
+    #             left, right = self._hl_cursor_place, self._cursor_place
+    #             if left > right:
+    #                 left, right = right, left
+    #             if self.highlight.start != left.pos or self.highlight.end != right.pos:
+    #                 self.highlight.start = left.x - self.margin, left.y - self.margin
+    #                 self.highlight.end = right.x - self.margin, right.y - self.margin
+    #                 self.highlight.refresh_background_flag = True
+    #             else:
+    #                 self.highlight.start = left.x - self.margin, left.y - self.margin
+    #                 self.highlight.end = right.x - self.margin, right.y - self.margin
+    #         elif self.highlight.is_visible:
+    #             self.highlight.deactivate()
+    #             self.cursor.activate()
+    #         self.cursor.midtop = self._cursor_place.pos
 
 
 class TextField(TextEntryBox):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 
-    def key_down_hook(self, unicode, key, mod):
+    def on_key_down(self, unicode, key, mod):
         if key == pygame.K_RETURN and not mod & pygame.KMOD_SHIFT:
             self.send_message('text-entry', text=self.text)
         else:
-            super().key_down_hook(unicode, key, mod)
+            super().on_key_down(unicode, key, mod)

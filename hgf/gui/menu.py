@@ -16,15 +16,15 @@
 #                                                                             #
 ###############################################################################
 
-from .button import Button
+from hgf.double_buffer import double_buffer
+from .button import LabeledButton
+from .component import LayeredComponent
 from .text import Text
-from .component import GraphicalComponent
-from .hook import transition
 
 
-class Menu(GraphicalComponent):
+class Menu(LayeredComponent):
     def __init__(self, justify='center', title='Menu', **kwargs):
-        super().__init__(opacity=2, **kwargs)
+        super().__init__(**kwargs)
         self.type = 'menu'
 
         self.title = title
@@ -39,47 +39,53 @@ class Menu(GraphicalComponent):
 
         self.justify = justify
 
-    @transition
-    def justify(self, after):
-        if after == 'left':
-            button_x = self._button_gap
-            self._title_text.x = self._button_gap
-        elif after == 'right':
-            button_x = self.relright - self._button_gap - self._button_w
-            self._title_text.right = self.relright - self._button_gap
-        else:
-            button_x = self.relmidx - self._button_w // 2
-            self._title_text.midx = self.relmidx
+    @double_buffer
+    class justify:
+        def on_transition(self):
+            if self.justify == 'left':
+                button_x = self._button_gap
+                self._title_text.x = self._button_gap
+            elif self.justify == 'right':
+                button_x = self.relright - self._button_gap - self._button_w
+                self._title_text.right = self.relright - self._button_gap
+            else:
+                button_x = self.relmidx - self._button_w // 2
+                self._title_text.midx = self.relmidx
 
-        for button in self.buttons:
-            button.x = button_x
+            for button in self.buttons:
+                button.x = button_x
 
-    def load_hook(self):
+    def on_load(self):
         for button_info in self._button_info:
-            self.buttons.append(Button(*button_info))
+            self.buttons.append(LabeledButton(*button_info))
         del self._button_info
         self.register_load(*self.buttons)
 
         self._title_text = Text(self.title, fgcolor=(0, 60, 100))
         self.register_load(self._title_text)
 
-    def layout_hook(self):
+    def refresh_proportions(self):
+        super().refresh_proportions()
         self._button_gap = self.h // 50
         self._button_w = self.w // 5
         self._button_h = self.h // 10
 
-        self._title_text.fontsize = self._button_h
-        self._title_text.fontsize_apply_transition()
+        for button in self.buttons:
+            button.size = self._button_w, self._button_h
 
+        self._title_text.fontsize = self._button_h
+        self._title_text.on_fontsize_transition()
+
+    def refresh_layout(self):
+        super().refresh_layout()
         button_y = self.midy - self._button_w // 2
         self._title_text.midy = button_y // 2
 
         for button in self.buttons:
-            button.size = self._button_w, self._button_h
             button.y = button_y
             button_y += button.h + self._button_gap
 
-        self.justify_apply_transition()
+        self.on_justify_transition()
 
     def add_button(self, name, message):
         self._button_info.append((name, message))

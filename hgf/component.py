@@ -16,9 +16,16 @@
 #                                                                             #
 ###############################################################################
 
+from .double_buffer import _HookHandler,  responsive, double_buffer
+import logging
 
-class Component:
-    def __init__(self, *args, pause=False, **kwargs):
+
+class Component(metaclass=_HookHandler):
+    def __init__(self, *args,
+                 frozen=False,
+                 pause=False,
+                 active=True,
+                 **kwargs):
         super().__init__(*args, **kwargs)
 
         # Configuration
@@ -31,31 +38,86 @@ class Component:
         self._children = []
 
         # State flags
-        self.is_frozen = pause
-        self.is_paused = pause
         self.is_loaded = False
 
-    def load_hook(self): pass
+        self.is_visible = False
+        self.is_frozen = frozen
+        self.is_paused = pause
+        self.is_active = active
 
     def load_style(self): pass
 
     def load_options(self): pass
 
-    def prepare_hook(self): pass
+    def on_load(self): pass
 
-    def freeze_hook(self): pass
+    def on_show(self): pass
 
-    def unfreeze_hook(self): pass
+    def on_hide(self): pass
 
-    def pause_hook(self): pass
+    def on_freeze(self): pass
 
-    def unpause_hook(self): pass
+    def on_unfreeze(self): pass
 
-    def new_parent_hook(self): pass
+    def on_pause(self): pass
 
-    def disowned_hook(self): pass
+    def on_unpause(self): pass
 
-    def tick_hook(self): pass
+    def on_activate(self): pass
+
+    def on_deactivate(self): pass
+
+    def on_adoption(self): pass
+
+    def on_disown(self): pass
+
+    def on_tick(self, elapsed): pass
+
+    @responsive(init=True, priority=-10)
+    def refresh_style(self):
+        for child in self._children:
+            if child.is_loaded:
+                child.refresh_style()
+        self.load_style()
+
+    @responsive(init=True, priority=-10)
+    def refresh_options(self):
+        for child in self._children:
+            if child.is_loaded:
+                child.refresh_options()
+        self.load_options()
+
+    @double_buffer
+    class is_visible:
+        def on_transition(self):
+            if self.is_visible:
+                self.on_show()
+            else:
+                self.on_hide()
+
+    @double_buffer
+    class is_frozen:
+        def on_transition(self):
+            if self.is_frozen:
+                self.on_freeze()
+            else:
+                self.on_unfreeze()
+
+    @double_buffer
+    class is_paused:
+        def on_transition(self):
+            if self.is_paused:
+                self.on_pause()
+            else:
+                self.on_unpause()
+
+    @double_buffer
+    class is_active:
+        def on_transition(self):
+            if self.is_active:
+                self.on_activate()
+            else:
+                self.on_deactivate()
 
     @property
     def is_root(self):
@@ -105,73 +167,45 @@ class Component:
                 return args[1]
             raise
 
-    def _recursive_load_style(self):
-        for child in self._children:
-            if child.is_loaded:
-                child._recursive_load_style()
-        self.load_style()
-
-    def _recursive_load_options(self):
-        for child in self._children:
-            if child.is_loaded:
-                child._recursive_load_options()
-        self.load_options()
-
     def load(self):
         self.is_loaded = True
-        self.load_hook()
+        self.on_load()
 
-    def _recursive_prepare_hook(self):
-        self.prepare_hook()
-        for child in self._children:
-            if child.is_loaded:
-                child._recursive_prepare_hook()
+    def show(self):
+        self.is_visible = True
 
-    def prepare(self):
-        self.load()
-        self._recursive_load_style()
-        self._recursive_load_options()
-        self._recursive_prepare_hook()
+    def hide(self):
+        self.is_visible = False
 
-    def reload_style(self):
-        self._recursive_load_style()
-
-    def reload_options(self):
-        self._recursive_load_options()
+    def toggle_show(self):
+        self.is_visible = not self.is_visible
 
     def freeze(self):
         self.is_frozen = True
-        self.freeze_hook()
-        for child in self._children:
-            child.freeze()
 
     def unfreeze(self):
         self.is_frozen = False
-        self.unfreeze_hook()
-        for child in self._children:
-            child.unfreeze()
 
-    def toggle_freeze(self):
-        if self.is_frozen:
-            self.unfreeze()
-        else:
-            self.freeze()
+    def toggle_frozen(self):
+        self.is_frozen = not self.is_frozen
 
     def pause(self):
         self.is_paused = True
-        self.freeze()
-        self.pause_hook()
 
     def unpause(self):
         self.is_paused = False
-        self.unfreeze()
-        self.unpause_hook()
 
-    def toggle_pause(self):
-        if self.is_paused:
-            self.unpause()
-        else:
-            self.pause()
+    def toggle_paused(self):
+        self.is_paused = not self.is_paused
+
+    def activate(self):
+        self.is_active = True
+
+    def deactivate(self):
+        self.is_active = False
+
+    def toggle_active(self):
+        self.is_active = not self.is_active
 
     def register(self, *children):
         for child in children:
@@ -181,7 +215,7 @@ class Component:
             child.app = self._app
             if child._context is None and self._context is not None:
                 child.context = self._context
-            child.new_parent_hook()
+            child.on_adoption()
             self._children.append(child)
 
     def register_load(self, *children):
@@ -189,20 +223,15 @@ class Component:
         for child in children:
             child.load()
 
-    def register_prepare(self, *children):
-        self.register(*children)
-        for child in children:
-            child.prepare()
-
     def unregister(self, *children):
         for child in children:
-            child.disowned_hook()
+            child.on_disown()
             child.app = None
             child.parent = None
             child.context = None
             self._children.remove(child)
             if child.is_focused:
-                child.lose_focus()
+                child.unfocus()
 
     def handle_message(self, sender, message, **params):
         self.send_message(message)
@@ -210,12 +239,56 @@ class Component:
     def send_message(self, message, **params):
         if not self.is_root:
             self.parent.handle_message(self, message, **params)
+        else:
+            logging.warning('Unhandled message: "{}"'.format(message), params)
 
-    def _recursive_tick_hook(self):
+    def _step_input(self): pass
+
+    def _step_tick(self, elapsed):
+        self.on_tick(elapsed)
+
+    def _step_output(self): pass
+
+    def _step_reset(self):
+        self._flip_transition_hooks()
+
+    def _recursive_step_input(self):
         for child in self._children:
-            if not child.is_paused:
-                child._recursive_tick_hook()
-        self.tick_hook()
+            if child.is_active and not child.is_frozen:
+                child._recursive_step_input()
+        self._step_input()
 
-    def step(self):
-        self._recursive_tick_hook()
+    def _recursive_step_tick(self, elapsed):
+        for child in self._children:
+            if child.is_active and not child.is_paused:
+                child._recursive_step_tick(elapsed)
+        self._step_tick(elapsed)
+
+    def _recursive_step_output(self):
+        for child in self._children:
+            if (child.old_is_active or child.is_active) and child.is_visible:
+                child._recursive_step_output()
+        self._step_output()
+
+    def _recursive_step_reset(self):
+        for child in self._children:
+            if child.old_is_active or child.is_active:
+                child._recursive_step_reset()
+        self._step_reset()
+
+    def _recursive_step(self, elapsed):
+        # Input
+        self._recursive_step_input()
+
+        # Logic
+        self._recursive_step_tick(elapsed)
+
+        # Refresh
+        self._recursive_call_transition_hooks()
+        self._recursive_refresh_responsive_attrs()
+
+        # Output
+        self._recursive_step_output()
+
+        # Reset
+        self._recursive_step_reset()

@@ -16,13 +16,13 @@
 #                                                                             #
 ###############################################################################
 
-from .component import GraphicalComponent
-from .hook import transition
+from hgf.double_buffer import double_buffer
+from .component import FlatComponent, LayeredComponent
 
 
-class Text(GraphicalComponent):
+class Text(FlatComponent):
     def __init__(self, text='', font=None, fontsize=14, fgcolor=None, parent_style=False, **kwargs):
-        super().__init__(hover=False, click=False, opacity=1, **kwargs)
+        super().__init__(hover=False, solid=False, click=False, opacity=1, **kwargs)
         self.text = text
         self.font = font
         self.fontsize = fontsize
@@ -30,33 +30,38 @@ class Text(GraphicalComponent):
         self.fgcolor = (0, 0, 0) if fgcolor is None else fgcolor
         self._parent_style = parent_style
 
-    def layout_hook(self):
-        self.size = self.get_rect().size
-
     def load_style(self):
         if self._parent_style:
             self.font = self.parent.style_get('font')
         else:
             self.font = self.style_get('font')
 
-    def refresh(self):
+    def refresh_background(self):
         self.background = self.font.render(self.text, fgcolor=self.fgcolor, size=self.fontsize)[0]
 
-    @transition
-    def text(self):
-        self.size = self.get_rect().size
+    @double_buffer
+    class text:
+        def on_transition(self):
+            self.parent.refresh_layout_flag = True
+            self.refresh_background_flag = True
 
-    @transition
-    def font(self):
-        self.size = self.get_rect().size
+    @double_buffer
+    class font:
+        def on_transition(self):
+            self.parent.refresh_layout_flag = True
+            self.refresh_background_flag = True
 
-    @transition
-    def fontsize(self):
-        self.size = self.get_rect().size
+    @double_buffer
+    class fontsize:
+        def on_transition(self):
+            self.parent.refresh_layout_flag = True
+            self.refresh_background_flag = True
 
-    @transition
-    def fgcolor(self):
-        self.is_stale = True
+    @double_buffer
+    class fgcolor:
+        def on_transition(self):
+            self.parent.refresh_layout_flag = True
+            self.refresh_background_flag = True
 
     def get_metrics(self):
         return self.font.get_metrics(self.text, self.fontsize)
@@ -70,7 +75,7 @@ class Text(GraphicalComponent):
     __str__ = __repr__
 
 
-class TextBox(GraphicalComponent):
+class TextBox(LayeredComponent):
     def __init__(self, text='', justify='left', margin=3, **kwargs):
         super().__init__(opacity=1, **kwargs)
         self.type = 'text-box'
@@ -94,30 +99,35 @@ class TextBox(GraphicalComponent):
         self.fgcolor = self.style_get('fg-color')
         self._bg_factory = self.style_get('background')
 
-    def refresh(self):
+    def refresh_background(self):
         self.background = self._bg_factory(self.size, self.margin)
         self.set_text(self.text)
         for line in self.lines:
             line.font = self.font
             line.fgcolor = self.fgcolor
 
-    def layout_hook(self):
+    def refresh_proportions(self):
+        super().refresh_proportions()
+        self.unregister(*self.lines)
         self.lines = [Text('', parent_style=True) for _ in range((self.h - 2 * self.margin) // self.line_height)]
-        self.register_prepare(*self.lines)
+        self.register_load(*self.lines)
+
+    def refresh_layout(self):
         self.set_text(self.text)
 
-    @transition
-    def justify(self, after):
-        y = self.margin
-        for line in self.lines:
-            if after == 'left':
-                line.left = self.margin
-            elif after == 'center':
-                line.midx = self.relmidx
-            else:
-                line.right = self.relright - self.margin
-            line.y = y
-            y += self.line_height
+    @double_buffer
+    class justify:
+        def on_transition(self):
+            y = self.margin
+            for line in self.lines:
+                if self.justify == 'left':
+                    line.left = self.margin
+                elif self.justify == 'center':
+                    line.midx = self.relmidx
+                else:
+                    line.right = self.relright - self.margin
+                line.y = y
+                y += self.line_height
 
     def _wrap_paragraph(self, text):
         if text == '':

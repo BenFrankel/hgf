@@ -16,21 +16,25 @@
 #                                                                             #
 ###############################################################################
 
-from .component import GraphicalComponent
+from .component import LayeredComponent
 
 
-class StructuralComponent(GraphicalComponent):
+class ContextSwitcher(LayeredComponent):
     def __init__(self, opacity=0, **kwargs):
         super().__init__(opacity=opacity, **kwargs)
         self.location = None
 
-    def load_hook(self):
+    def on_load(self):
         if self.location is not None:
             self.location.load()
 
-    def layout_hook(self):
+    def refresh_proportions(self):
+        super().refresh_proportions()
         for child in self._graphical_children:
             child.size = self.size
+
+    def refresh_layout(self):
+        for child in self._graphical_children:
             child.pos = self.relpos
 
     def enter_node(self, child):
@@ -39,13 +43,11 @@ class StructuralComponent(GraphicalComponent):
                 self.location.deactivate()
             self.location = child
             if self.is_loaded and not child.is_loaded:
-                child.prepare()
-            if child.can_focus:
-                child.take_focus()
+                child.load()
             child.activate()
 
 
-class Sequence(StructuralComponent):
+class Sequence(ContextSwitcher):
     MSG_NEXT = 'next'
     MSG_PREV = 'prev'
 
@@ -78,6 +80,8 @@ class Sequence(StructuralComponent):
         self.loc_list.insert(index, child)
         if self.loc_index is None:
             self.enter_index(index)
+        elif self.loc_index == index:
+            self.enter_node(child)
         else:
             child.deactivate()
         self.register(child)
@@ -89,7 +93,7 @@ class Sequence(StructuralComponent):
         self.register_index(len(self.loc_list), tail)
 
 
-class Hub(StructuralComponent):
+class Hub(ContextSwitcher):
     MSG_RETURN_TO_CENTER = 'exit'
 
     def __init__(self, **kwargs):
@@ -99,12 +103,14 @@ class Hub(StructuralComponent):
 
     def register_node(self, name, node):
         if name in self.loc_nodes:
-            raise KeyError('A node with the name {} is already registered.'.format(name))
+            raise KeyError('A node with the name {} is already registered'.format(name))
         self.loc_nodes[name] = node
         node.deactivate()
         self.register(node)
 
     def register_center(self, center):
+        if self.loc_center is not None:
+            raise KeyError('A center node is already registered')
         self.loc_center = center
         if self.location is None:
             self.enter_node(center)

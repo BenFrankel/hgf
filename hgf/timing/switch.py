@@ -29,9 +29,6 @@ class Switch(Ticker):
 
 
 class Blink(Switch, Pulse):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
     def trigger(self):
         self.state = not self.state
         super().trigger()

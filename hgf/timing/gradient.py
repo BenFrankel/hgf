@@ -29,9 +29,10 @@ class Gradient(TimingComponent):
         self._gap = start - end
         self.value = start
 
-    def time_shift_hook(self, before, after):
-        if after <= self._duration:
-            self.value = self.start + self._gap * after / self._duration
-        elif after > self._duration:
+    def on_time_elapsed(self, before, after, elapsed):
+        super().on_time_elapsed(before, after, elapsed)
+        if after <= self.duration:
+            self.value = self.start + self._gap * after / self.duration
+        elif after > self.duration:
             self.value = self.end
             self.send_message(self.message)

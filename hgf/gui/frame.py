@@ -18,7 +18,7 @@
 
 from .drag import SlideWidget
 from .widget import SimpleWidget
-from .component import GraphicalComponent
+from .component import LayeredComponent
 
 
 # TODO
@@ -30,14 +30,14 @@ class Scrollbar(SimpleWidget):
         self._drag_bar = None
         self._drag_bar_length = length
 
-    def load_hook(self):
+    def on_load(self):
         self._drag_bar = SlideWidget(w=self.w, h=self._drag_bar_length)
         rel = self.rel_rect()
         self._drag_bar.set_axis(rel.midtop, rel.midbottom)
 
 
 # TODO
-class Frame(GraphicalComponent):
+class Frame(LayeredComponent):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
 

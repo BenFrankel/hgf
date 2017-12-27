@@ -22,20 +22,26 @@ from .app import\
 
 from .gui import\
     Window,\
-    StructuralComponent, Sequence, Hub,\
+    ContextSwitcher, Sequence, Hub,\
+    Menu,\
+    Button, LabeledButton,\
     TextEntryBox, TextField,\
-    Button, Menu,\
-    DragWidget, SlideWidget,\
-    SimpleWidget, Widget,\
     Text, TextBox,\
     Image,\
-    GraphicalComponent,\
-    transition
+    DragWidget, SlideWidget,\
+    SimpleWidget, Widget,\
+    GraphicalComponent, FlatComponent, LayeredComponent
 
 from .timing import\
     TimingComponent,\
     Pulse, Delay,\
     Gradient
+
+from .double_buffer import\
+    double_buffer, responsive
+
+from .component import\
+    Component
 
 from .util import\
     Rect,\
@@ -46,19 +52,23 @@ __all__ = [
     'AppManager', 'App',
 
     'Window',
-    'StructuralComponent', 'Sequence', 'Hub',
+    'ContextSwitcher', 'Sequence', 'Hub',
+    'Menu',
+    'Button', 'LabeledButton',
     'TextEntryBox', 'TextField',
-    'Button', 'Menu',
-    'DragWidget', 'SlideWidget',
-    'SimpleWidget', 'Widget',
     'Text', 'TextBox',
     'Image',
-    'GraphicalComponent',
-    'transition',
+    'DragWidget', 'SlideWidget',
+    'SimpleWidget', 'Widget',
+    'GraphicalComponent', 'FlatComponent', 'LayeredComponent',
 
     'TimingComponent',
     'Pulse', 'Delay',
     'Gradient',
+
+    'double_buffer', 'responsive',
+
+    'Component',
 
     'Rect',
     'Time', 'Timer', 'CountdownTimer',

@@ -16,23 +16,19 @@
 #                                                                             #
 ###############################################################################
 
-from .component import GraphicalComponent
+from ..double_buffer import double_buffer
+from .component import FlatComponent
 
 
-class Image(GraphicalComponent):
+class Image(FlatComponent):
     def __init__(self, image_name):
         super().__init__(hover=False, click=False)
-        self._image = None
         self.image_name = image_name
 
-    def load_hook(self):
-        self.image = self._app.get_image(self.image_name)
+    @double_buffer
+    class image_name:
+        def on_transition(self):
+            self.refresh_background_flag = True
 
-    @property
-    def image(self):
-        return self._image
-
-    @image.setter
-    def image(self, other):
-        self.image = other
-        self.background = self.image
+    def refresh_background(self):
+        self.background = self._app.get_image(self.image_name)

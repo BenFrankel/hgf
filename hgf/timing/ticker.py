@@ -20,8 +20,8 @@ from .component import TimingComponent
 
 
 class Ticker(TimingComponent):
-    def __init__(self, message, frequency=None):
-        super().__init__()
+    def __init__(self, message, frequency=None, **kwargs):
+        super().__init__(**kwargs)
         self.message = message
         self.frequency = frequency
 
@@ -30,20 +30,16 @@ class Ticker(TimingComponent):
 
 
 class Pulse(Ticker):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def time_shift_hook(self, before, after):
+    def on_time_elapsed(self, before, after, elapsed):
+        super().on_time_elapsed(before, after, elapsed)
         num = after // self.frequency - before // self.frequency
         for _ in range(num):
             self.trigger()
 
 
 class Delay(Ticker):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-    def time_shift_hook(self, before, after):
+    def on_time_elapsed(self, before, after, elapsed):
+        super().on_time_elapsed(before, after, elapsed)
         if after > self.frequency:
             self.trigger()
             self.reset()
