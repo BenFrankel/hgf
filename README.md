@@ -3,17 +3,19 @@
 **hgf** is a hierarchical GUI framework for Python, built on top of Pygame. It is designed to ease the creation of graphical applications that,
 
 - **Support external configuration** - controls, options, style
+- **Manage structural complexity** - by composing simple elements
 - **Separate major concerns** - behavior, layout, appearance
-- **Manage structural complexity** - by combining basic components
 
-hgf is currently version 0.1.1, pre-alpha. Anything could change, but any change will be made in accordance with the design principles above.
+With code that is easy to read, write, and extend, with minimal boilerplate.
+
+hgf is currently version 0.2.0, alpha. The API may be volatile, but any changes to it will be made in an effort to better manifest these design principles.
 
 
 ## Using hgf
 
 ### Documentation
 
-You can read the online documentation [here](https://benfrankel.github.io/hgf).
+You can read the online documentation [here](https://benfrankel.github.io/hgf) (**outdated and incomplete**).
 
 ### Dependencies
 

@@ -37,7 +37,7 @@ class DragWidget(SimpleWidget):
 
     def on_mouse_state_transition(self):
         super().on_mouse_state_transition()
-        if self.mouse_state == SimpleWidget.PRESS:
+        if self.mouse_state == SimpleWidget.PRESS or self.mouse_state == SimpleWidget.PULL:
             mx, my = pygame.mouse.get_pos()
             ax, ay = self.abs_pos()
             self._pressed_pos = mx - ax, my - ay
