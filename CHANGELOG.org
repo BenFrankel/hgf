@@ -19,7 +19,7 @@
 - [ ] Frame
 - [ ] TextFrame
 
-* Version 0.2.0 (In Progress)
+* Version 0.2.0
 
 ** New Graphical Components [6/6]
 
@@ -60,9 +60,9 @@
 - [X] Simultaneously register and load (~register_load~)
 - [X] Event loop is handled by hgf on application launch
 
-** Miscellaneous [0/1]
+** Miscellaneous [1/1]
 
-- [ ] Style, options and controls can be dynamically reloaded
+- [X] Style, options and controls can be dynamically reloaded
 
 ** Bugs Fixed [1/1]
 

@@ -21,6 +21,7 @@ You can read the online documentation [here](https://benfrankel.github.io/hgf) (
 
 - Python 3.x
 - Pygame 1.9.2+ (should be handled by pip)
+- pyperclip (should be handled by pip)
 
 ### Installation
 
@@ -30,5 +31,5 @@ hgf is available on [PyPI](https://pypi.python.org/pypi), so you can install the
 
 ### License
 
-hgf is licensed under the [Apache 2.0](https://github.com/BenFrankel/hgf/blob/master/LICENSE) license, so you are free to use, distribute and modify it.
+hgf is licensed under the [Apache 2.0](https://github.com/BenFrankel/hgf/blob/master/LICENSE) license, so you are free to use, distribute, and modify it.
 

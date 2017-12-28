@@ -327,6 +327,18 @@ class LayeredComponent(GraphicalComponent):
         for rect in self._dirty_rects:
             self._clean_dirty_rects(rect)
 
+    def _key_down(self, unicode, key, mod):
+        super()._key_down(unicode, key, mod)
+        for child in self._children:
+            if child.is_active and not child.is_frozen:
+                child._key_down(unicode, key, mod)
+
+    def _key_up(self, key, mods):
+        super()._key_up(key, mods)
+        for child in self._children:
+            if child.is_active and not child.is_frozen:
+                child._key_up(key, mods)
+
     def _mouse_motion(self, start, end, buttons, start_component, end_component):
         super()._mouse_motion(start, end, buttons, start_component, end_component)
         for child in self._graphical_children:
