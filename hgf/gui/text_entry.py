@@ -16,7 +16,7 @@
 #                                                                             #
 ###############################################################################
 
-from .widget import SimpleWidget, Widget
+from .widget import MouseState, Widget
 from .text import TextBox
 from .component import FlatComponent
 
@@ -268,7 +268,7 @@ class TextEntryBox(Widget, TextBox):
 
     def on_mouse_motion(self, start, end, buttons, start_hovered, end_hovered):
         super().on_mouse_motion(start, end, buttons, start_hovered, end_hovered)
-        if self.mouse_state == SimpleWidget.PRESS:
+        if self.mouse_state == MouseState.PRESS:
             started_highlighting = False
             if self._hl_cursor_place is None:
                 started_highlighting = True
@@ -435,7 +435,6 @@ class TextEntryBox(Widget, TextBox):
 
         cursor.raw_x, cursor.raw_y = cursor.pos = self._grid_pos(cursor.row, cursor.col)
 
-    # TODO: Go over all the on_tick (& tick, & tick_hook) methods. Maybe they no longer match the intended purpose.
     # TODO: Implement some kind of notion of "focus"
     # def on_tick(self, elapsed):
     #     super().on_tick(elapsed)

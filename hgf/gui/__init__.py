@@ -24,7 +24,7 @@ from .text_entry import TextEntryBox, TextField
 from .text import Text, TextBox
 from .image import Image
 from .drag import DragWidget, SlideWidget
-from .widget import SimpleWidget, Widget
+from .widget import MouseState, Widget
 from .component import GraphicalComponent, FlatComponent, LayeredComponent
 
 __all__ = [
@@ -36,6 +36,6 @@ __all__ = [
     'Text', 'TextBox',
     'Image',
     'DragWidget', 'SlideWidget',
-    'SimpleWidget', 'Widget',
+    'MouseState', 'Widget',
     'GraphicalComponent', 'FlatComponent', 'LayeredComponent',
 ]

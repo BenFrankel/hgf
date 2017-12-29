@@ -19,12 +19,12 @@
 import pygame
 
 from hgf.double_buffer import double_buffer
-from .component import LayeredComponent
+from .component import GraphicalComponent
 from ..timing import Delay, Pulse
 from ..util import Time, keyboard
 
 
-class SimpleWidget(LayeredComponent):
+class MouseState:
     IDLE = 0
     HOVER = 1
     PUSH = 2
@@ -33,7 +33,7 @@ class SimpleWidget(LayeredComponent):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.mouse_state = SimpleWidget.IDLE
+        self.mouse_state = MouseState.IDLE
 
     @double_buffer
     class mouse_state:
@@ -44,46 +44,46 @@ class SimpleWidget(LayeredComponent):
         super().on_mouse_motion(start, end, buttons, start_hovered, end_hovered)
         if end_hovered:
             if buttons[0]:
-                if self.mouse_state == SimpleWidget.PULL:
-                    self.mouse_state = SimpleWidget.PRESS
-                elif self.mouse_state != SimpleWidget.PRESS:
-                    self.mouse_state = SimpleWidget.PUSH
+                if self.mouse_state == MouseState.PULL:
+                    self.mouse_state = MouseState.PRESS
+                elif self.mouse_state != MouseState.PRESS:
+                    self.mouse_state = MouseState.PUSH
             else:
-                self.mouse_state = SimpleWidget.HOVER
+                self.mouse_state = MouseState.HOVER
         elif not buttons[0]:
-            self.mouse_state = SimpleWidget.IDLE
+            self.mouse_state = MouseState.IDLE
         elif start_hovered:
-            if self.mouse_state == SimpleWidget.PUSH:
-                self.mouse_state = SimpleWidget.IDLE
+            if self.mouse_state == MouseState.PUSH:
+                self.mouse_state = MouseState.IDLE
             else:
-                self.mouse_state = SimpleWidget.PULL
+                self.mouse_state = MouseState.PULL
 
     def on_mouse_down(self, pos, button, hovered):
         super().on_mouse_down(pos, button, hovered)
         if button == 1 and hovered:
-            self.mouse_state = SimpleWidget.PRESS
+            self.mouse_state = MouseState.PRESS
 
     def on_mouse_up(self, pos, button, hovered):
         super().on_mouse_up(pos, button, hovered)
         if button == 1:
             if hovered:
-                self.mouse_state = SimpleWidget.HOVER
+                self.mouse_state = MouseState.HOVER
             else:
-                self.mouse_state = SimpleWidget.IDLE
+                self.mouse_state = MouseState.IDLE
 
     def _debug_str(self):
         return '{} {}.{}'.format(super()._debug_str(), __class__.__name__, {
-            SimpleWidget.IDLE: 'IDLE',
-            SimpleWidget.HOVER: 'HOVER',
-            SimpleWidget.PUSH: 'PUSH',
-            SimpleWidget.PRESS: 'PRESS',
-            SimpleWidget.PULL: 'PULL',
+            MouseState.IDLE: 'IDLE',
+            MouseState.HOVER: 'HOVER',
+            MouseState.PUSH: 'PUSH',
+            MouseState.PRESS: 'PRESS',
+            MouseState.PULL: 'PULL',
         }[self.mouse_state])
 
 
 # TODO: Drag hook?
 # TODO: Scroll hook?
-class Widget(SimpleWidget):
+class Widget(MouseState):
     # Messages
     MSG_KEY_REPEAT_START = 'key-repeat-start'
     MSG_KEY_REPEAT = 'key-repeat'
@@ -177,9 +177,9 @@ class Widget(SimpleWidget):
 
     def on_mouse_state_transition(self):
         super().on_mouse_state_transition()
-        if self.mouse_state == SimpleWidget.HOVER:
+        if self.mouse_state == MouseState.HOVER:
             self._long_hover_timer.start()
-        elif self.old_mouse_state == SimpleWidget.HOVER:
+        elif self.old_mouse_state == MouseState.HOVER:
             self._long_hover_timer.reset()
 
     def on_mouse_down(self, pos, button, hovered):

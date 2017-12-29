@@ -26,6 +26,11 @@
 - [X] Children of offset transparent components are rendered incorrectly
 - [ ] TextField and TextEntryBox don't work
 
+** Refactoring [1/2]
+
+- [X] SimpleWidget -> MouseState
+- [ ] Widget -> MouseInteraction
+
 * Version 0.2.0
 
 ** New Graphical Components [6/6]
