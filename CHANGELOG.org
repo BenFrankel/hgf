@@ -6,9 +6,13 @@
 
 * Planned
 
-** Restructuring [0/1]
+** Restructuring [0/2]
 
 - [ ] Overhaul of the style / options system to use CSS-style (or a subset) selectors
+- [ ] Resolution of refresh / transition order issues in the frame pipeline
+
+** Convenience [0/1]
+
 - [ ] Default values for all built-in configuration
 
 ** New Graphical Components [0/3]
@@ -17,14 +21,24 @@
 - [ ] Frame
 - [ ] TextFrame
 
-* Version 0.2.1 (In Progress)
+* Version 0.3.0 (In Progress)
 
-** Bugs Fixed [3/4]
+** Bugs Fixed [0/1]
+
+- [ ] TextField and TextEntryBox don't work
+
+** Restructuring [0/2]
+
+- [ ] SimpleWidget -> MouseState mix-in
+- [ ] Decomposition of Widget to LongHover, MultipleClick, and RepeatKey mix-ins
+
+* Version 0.2.1
+
+** Bugs Fixed [3/3]
 
 - [X] Key events don't propagate to children
 - [X] FlatComponents don't get redrawn when they move
 - [X] Children of offset transparent components are rendered incorrectly
-- [ ] TextField and TextEntryBox don't work
 
 ** Refactoring [1/2]
 
@@ -59,7 +73,7 @@
 - [X] Component -> Component, GraphicalComponent, FlatComponent, LayeredComponent
 - [X] Switch -> ContextSwitcher
 
-** Structural Changes [3/3]
+** Restructuring [3/3]
 
 - [X] Explicit load step
 - [X] ~appdata/<appname>/dir.json~ changed to ~appdata/<appname>.json~

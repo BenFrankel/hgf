@@ -8,7 +8,7 @@
 
 With code that is easy to read, write, and extend, with minimal boilerplate.
 
-hgf is currently version 0.2.0, pre-alpha. The API may be volatile, but any changes to it will be made in an effort to better manifest these design principles.
+hgf is currently version 0.2.1, pre-alpha. The API may be volatile, but any changes to it will be made in an effort to better manifest these design principles.
 
 
 ## Using hgf
