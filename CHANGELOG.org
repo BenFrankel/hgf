@@ -11,19 +11,20 @@
 - [ ] Overhaul of the style / options system to use CSS-style (or a subset) selectors
 - [ ] Default values for all built-in configuration
 
-* Version 0.2.1 (Future)
-
 ** New Graphical Components [0/3]
 
 - [ ] Scrollbar
 - [ ] Frame
 - [ ] TextFrame
 
-** Bugs Fixed [1/3]
+* Version 0.2.1 (In Progress)
+
+** Bugs Fixed [3/4]
 
 - [X] Key events don't propagate to children
+- [X] FlatComponents don't get redrawn when they move
+- [X] Children of offset transparent components are rendered incorrectly
 - [ ] TextField and TextEntryBox don't work
-- [ ] FlatComponents don't get redrawn when they move
 
 * Version 0.2.0
 
@@ -48,10 +49,10 @@
 
 ** Refactoring [4/4]
 
-- [X] Hook functions
+- [X] Hook functions (by convention, ~on_xxx~)
 - [X] Widget -> SimpleWidget
 - [X] Component -> Component, GraphicalComponent, FlatComponent, LayeredComponent
-- [X] Switch -> StructuralComponent
+- [X] Switch -> ContextSwitcher
 
 ** Structural Changes [3/3]
 

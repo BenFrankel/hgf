@@ -81,6 +81,7 @@ class GraphicalComponent(Rect, Component):
     class x:
         def on_transition(self):
             self._set_dirty(True)
+
     @double_buffer
     class y:
         def on_transition(self):
@@ -388,14 +389,12 @@ class LayeredComponent(GraphicalComponent):
             self._display.fill(self.colorkey, pyrect)
         self._display.blit(self._background, rect.pos, pyrect)
         can_see = lambda child: child.is_active and child.is_visible
-        children = list(filter(can_see, self._graphical_children))
-        for child in children:
+        children = [(c.pos, c) for c in self._graphical_children if can_see(c)]
+        for pos, child in children:
             if child.is_transparent:
-                children.extend(filter(can_see, child._graphical_children))
+                children.extend(((pos[0] + c.x, pos[1] + c.y), c) for c in child._graphical_children if can_see(c))
                 continue
-            # FIXME: What if child comes from an offset transparent child?
-            # FIXME: Its rect will be relative to the transparent child.
-            area = rect.intersect(child)
+            area = rect.intersect(Rect(*pos, child.w, child.h))
             if area is None or area.w <= 0 or area.h <= 0:
                 continue
             self._display.blit(child._display,
