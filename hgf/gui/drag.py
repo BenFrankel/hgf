@@ -17,40 +17,38 @@
 ###############################################################################
 
 from .widget import SimpleWidget
+from .component import FlatComponent
 
-import pygame
 
-
-class DragWidget(SimpleWidget):
+class DragWidget(FlatComponent):
     def __init__(self, box=None, **kwargs):
-        super().__init__(opacity=1, **kwargs)
-        self.box = box
-        self._pressed_pos = None
+        super().__init__(**kwargs)
+        self.type = 'drag-widget'
         self._bg_factory = None
+
+        self.box = box
+        self._pressed_at = None
 
     def load_style(self):
         self._bg_factory = self.style_get('background')
 
     def refresh_background(self):
         self.background = self._bg_factory(self.size)
-        self.background.set_alpha(100)
 
-    def on_mouse_state_transition(self):
-        super().on_mouse_state_transition()
-        if self.mouse_state == SimpleWidget.PRESS or self.mouse_state == SimpleWidget.PULL:
-            mx, my = pygame.mouse.get_pos()
-            ax, ay = self.abs_pos()
-            self._pressed_pos = mx - ax, my - ay
-        elif self.old_mouse_state == SimpleWidget.PRESS:
-            self._pressed_pos = None
+    def on_mouse_down(self, pos, button, hovered):
+        super().on_mouse_down(pos, button, hovered)
+        if hovered and button == 1:
+            self._pressed_at = pos
 
-    def on_tick(self, elapsed):
-        super().on_tick(elapsed)
-        if self._pressed_pos is not None:
-            mx, my = pygame.mouse.get_pos()
-            ax, ay = self.parent.abs_pos()
-            x, y = mx - ax, my - ay
-            rx, ry = self._pressed_pos
+    def on_mouse_up(self, pos, button, hovered):
+        super().on_mouse_up(pos, button, hovered)
+        self._pressed_at = None
+
+    def on_mouse_motion(self, start, end, buttons, start_hovered, end_hovered):
+        super().on_mouse_motion(start, end, buttons, start_hovered, end_hovered)
+        if self._pressed_at is not None:
+            x, y = end
+            rx, ry = self._pressed_at
             if self.box is None:
                 self.x = x - rx
                 self.y = y - ry
@@ -61,14 +59,15 @@ class DragWidget(SimpleWidget):
 
 class SlideWidget(SimpleWidget):
     def __init__(self, **kwargs):
-        super().__init__(opacity=1, **kwargs)
+        super().__init__(**kwargs)
+        self.type = 'slide-widget'
+        self._bg_factory = None
+
         self._axis_start = None
         self._axis_end = None
         self._unit_tangent = None
 
-        self.t = 0
-
-        self._bg_factory = None
+        self._t = None
 
     def load_style(self):
         self._bg_factory = self.style_get('background')
@@ -86,12 +85,12 @@ class SlideWidget(SimpleWidget):
             length = (v1**2 + v2**2) ** 0.5
 
             if length == 0:
-                self.t = 0
+                self._t = 0
             else:
                 u1, u2 = self._unit_tangent
-                self.t = (u1 * v1 + u2 * v2) / length
+                self._t = (u1 * v1 + u2 * v2) / length
 
-            self.t = min(max(self.t, 1), 0)
+            self._t = min(max(self._t, 1), 0)
             self._update_pos_from_t()
 
     def set_axis(self, start, end):
@@ -106,5 +105,5 @@ class SlideWidget(SimpleWidget):
         self._update_pos_from_t()
 
     def _update_pos_from_t(self):
-        self.midx = (1 - self.t) * self._axis_start[0] + self.t * self._axis_end[0]
-        self.midy = (1 - self.t) * self._axis_start[1] + self.t * self._axis_end[1]
+        self.midx = (1 - self._t) * self._axis_start[0] + self._t * self._axis_end[0]
+        self.midy = (1 - self._t) * self._axis_start[1] + self._t * self._axis_end[1]
