@@ -21,7 +21,7 @@
 - [ ] Frame
 - [ ] TextFrame
 
-* Version 0.3.0 (Future)
+* Version 0.3.0 (In Progress)
 
 ** Bugs Fixed [0/1]
 
@@ -32,7 +32,7 @@
 - [ ] SimpleWidget -> MouseState mix-in
 - [ ] Decomposition of Widget to LongHover, MultipleClick, and RepeatKey mix-ins
 
-* Version 0.2.1 (In Progress)
+* Version 0.2.1
 
 ** Bugs Fixed [3/3]
 
