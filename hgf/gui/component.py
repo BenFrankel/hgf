@@ -78,10 +78,13 @@ class GraphicalComponent(Rect, Component):
     class h: pass
 
     @double_buffer
-    class x: pass
-
+    class x:
+        def on_transition(self):
+            self._set_dirty(True)
     @double_buffer
-    class y: pass
+    class y:
+        def on_transition(self):
+            self._set_dirty(True)
 
     @double_buffer
     class z:
@@ -282,12 +285,6 @@ class LayeredComponent(GraphicalComponent):
         self._colorkey = other
         self._background.set_colorkey(other)
         self._display.set_colorkey(other)
-
-    def on_x_transition(self):
-        self._set_dirty(True)
-
-    def on_y_transition(self):
-        self._set_dirty(True)
 
     def on_w_transition(self):
         self.refresh_proportions_flag = True

@@ -19,6 +19,12 @@
 - [ ] Frame
 - [ ] TextFrame
 
+** Bugs Fixed [1/3]
+
+- [X] Key events don't propagate to children
+- [ ] TextField and TextEntryBox don't work
+- [ ] FlatComponents don't get redrawn when they move
+
 * Version 0.2.0
 
 ** New Graphical Components [6/6]
@@ -51,7 +57,7 @@
 
 - [X] Explicit load step
 - [X] ~appdata/<appname>/dir.json~ changed to ~appdata/<appname>.json~
-- [X] Method to recursively freeze a subtree (pausing timers & other time-tracking tasks)
+- [X] /Freeze/ now blocks user interaction events, while /pause/ blocks timing updates
 
 ** Convenience [4/4]
 
