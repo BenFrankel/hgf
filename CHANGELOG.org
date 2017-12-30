@@ -23,14 +23,24 @@
 
 * Version 0.3.0 (In Progress)
 
-** Bugs Fixed [0/1]
+** Bugs Fixed [0/3]
 
 - [ ] TextField and TextEntryBox don't work
 
-** Restructuring [0/2]
+** Restructuring [0/3]
 
 - [ ] SimpleWidget -> MouseState mix-in
 - [ ] Decomposition of Widget to LongHover, MultipleClick, and RepeatKey mix-ins
+- [ ] Alpha handling is more consistent with Pygame
+
+* Version 0.2.2
+
+** Bugs Fixed [4/4]
+
+- [X] Children of offset transparent components are rendered incorrectly (turns out other fix was insufficient)
+- [X] ~unregister~ fails and throws an error
+- [X] Registering and unregistering doesn't trigger redraw
+- [X] Unregistering doesn't remove from _graphical_children
 
 * Version 0.2.1
 
@@ -39,7 +49,6 @@
 - [X] Key events don't propagate to children
 - [X] FlatComponents don't get redrawn when they move
 - [X] Children of offset transparent components are rendered incorrectly
-
 * Version 0.2.0
 
 ** New Graphical Components [6/6]

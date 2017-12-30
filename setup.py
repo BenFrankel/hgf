@@ -20,7 +20,7 @@
 from setuptools import setup, find_packages
 
 
-version = '0.2.1'
+version = '0.2.2'
 
 
 with open('README.md') as f:
@@ -54,7 +54,7 @@ setup(
         packages=find_packages(),
         install_requires=[
             'pygame (>=1.9.1)',
-            'pyperclip'
+            'pyperclip (>=1.6.0)',
         ],
         provides=['hgf']
 )

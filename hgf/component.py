@@ -230,8 +230,6 @@ class Component(metaclass=_DoubleBufferHandler):
             child.parent = None
             child.context = None
             self._children.remove(child)
-            if child.is_focused:
-                child.unfocus()
 
     def handle_message(self, sender, message, **params):
         self.send_message(message)
