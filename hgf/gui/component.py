@@ -399,8 +399,8 @@ class LayeredComponent(GraphicalComponent):
                 continue
             self._display.blit(child._display,
                                area.pos,
-                               pygame.Rect(area.x - child.x,
-                                           area.y - child.y,
+                               pygame.Rect(area.x - pos[0],
+                                           area.y - pos[1],
                                            area.w,
                                            area.h))
 
