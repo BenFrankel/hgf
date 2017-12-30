@@ -18,13 +18,12 @@
 
 import pygame
 
-from hgf.double_buffer import double_buffer
-from .component import GraphicalComponent
+from ..double_buffer import double_buffer, _DoubleBufferHandler
 from ..timing import Delay, Pulse
 from ..util import Time, keyboard
 
 
-class MouseState:
+class MouseStateMixin(metaclass=_DoubleBufferHandler):
     IDLE = 0
     HOVER = 1
     PUSH = 2
@@ -33,7 +32,7 @@ class MouseState:
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.mouse_state = MouseState.IDLE
+        self.mouse_state = MouseStateMixin.IDLE
 
     @double_buffer
     class mouse_state:
@@ -44,46 +43,37 @@ class MouseState:
         super().on_mouse_motion(start, end, buttons, start_hovered, end_hovered)
         if end_hovered:
             if buttons[0]:
-                if self.mouse_state == MouseState.PULL:
-                    self.mouse_state = MouseState.PRESS
-                elif self.mouse_state != MouseState.PRESS:
-                    self.mouse_state = MouseState.PUSH
+                if self.mouse_state == MouseStateMixin.PULL:
+                    self.mouse_state = MouseStateMixin.PRESS
+                elif self.mouse_state != MouseStateMixin.PRESS:
+                    self.mouse_state = MouseStateMixin.PUSH
             else:
-                self.mouse_state = MouseState.HOVER
+                self.mouse_state = MouseStateMixin.HOVER
         elif not buttons[0]:
-            self.mouse_state = MouseState.IDLE
+            self.mouse_state = MouseStateMixin.IDLE
         elif start_hovered:
-            if self.mouse_state == MouseState.PUSH:
-                self.mouse_state = MouseState.IDLE
+            if self.mouse_state == MouseStateMixin.PUSH:
+                self.mouse_state = MouseStateMixin.IDLE
             else:
-                self.mouse_state = MouseState.PULL
+                self.mouse_state = MouseStateMixin.PULL
 
     def on_mouse_down(self, pos, button, hovered):
         super().on_mouse_down(pos, button, hovered)
         if button == 1 and hovered:
-            self.mouse_state = MouseState.PRESS
+            self.mouse_state = MouseStateMixin.PRESS
 
     def on_mouse_up(self, pos, button, hovered):
         super().on_mouse_up(pos, button, hovered)
         if button == 1:
             if hovered:
-                self.mouse_state = MouseState.HOVER
+                self.mouse_state = MouseStateMixin.HOVER
             else:
-                self.mouse_state = MouseState.IDLE
-
-    def _debug_str(self):
-        return '{} {}.{}'.format(super()._debug_str(), __class__.__name__, {
-            MouseState.IDLE: 'IDLE',
-            MouseState.HOVER: 'HOVER',
-            MouseState.PUSH: 'PUSH',
-            MouseState.PRESS: 'PRESS',
-            MouseState.PULL: 'PULL',
-        }[self.mouse_state])
+                self.mouse_state = MouseStateMixin.IDLE
 
 
 # TODO: Drag hook?
 # TODO: Scroll hook?
-class Widget(MouseState):
+class Widget:
     # Messages
     MSG_KEY_REPEAT_START = 'key-repeat-start'
     MSG_KEY_REPEAT = 'key-repeat'
@@ -177,9 +167,9 @@ class Widget(MouseState):
 
     def on_mouse_state_transition(self):
         super().on_mouse_state_transition()
-        if self.mouse_state == MouseState.HOVER:
+        if self.mouse_state == MouseStateMixin.HOVER:
             self._long_hover_timer.start()
-        elif self.old_mouse_state == MouseState.HOVER:
+        elif self.old_mouse_state == MouseStateMixin.HOVER:
             self._long_hover_timer.reset()
 
     def on_mouse_down(self, pos, button, hovered):

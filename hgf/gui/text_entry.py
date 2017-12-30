@@ -16,7 +16,7 @@
 #                                                                             #
 ###############################################################################
 
-from .widget import MouseState, Widget
+from .widget import MouseStateMixin, Widget
 from .text import TextBox
 from .component import FlatComponent
 
@@ -210,7 +210,7 @@ class CursorPlacement:
 
 # TODO: Undo
 # TODO: Double click to highlight word, triple to highlight line
-class TextEntryBox(Widget, TextBox):
+class TextEntryBox(MouseStateMixin, Widget, TextBox):
     MSG_UNDO = 'text-undo'
     MSG_HIGHLIGHT_ALL = 'text-highlight-all'
     MSG_CUT = 'text-cut'
@@ -268,7 +268,7 @@ class TextEntryBox(Widget, TextBox):
 
     def on_mouse_motion(self, start, end, buttons, start_hovered, end_hovered):
         super().on_mouse_motion(start, end, buttons, start_hovered, end_hovered)
-        if self.mouse_state == MouseState.PRESS:
+        if self.mouse_state == MouseStateMixin.PRESS:
             started_highlighting = False
             if self._hl_cursor_place is None:
                 started_highlighting = True

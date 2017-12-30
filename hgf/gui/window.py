@@ -49,7 +49,7 @@ class Window(LayeredComponent):
     def refresh_background(self):
         super().refresh_background()
         pygame.display.set_caption(self.title)
-        self.background.fill(self.bg_color)
+        self._background.fill(self.bg_color)
 
     def launch(self, fps=None, debug=False):
         if debug:

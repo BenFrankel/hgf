@@ -29,7 +29,7 @@ from .gui import\
     Text, TextBox,\
     Image,\
     DragWidget, SlideWidget,\
-    MouseState, Widget,\
+    MouseStateMixin, Widget,\
     GraphicalComponent, FlatComponent, LayeredComponent
 
 from .timing import\
@@ -59,7 +59,7 @@ __all__ = [
     'Text', 'TextBox',
     'Image',
     'DragWidget', 'SlideWidget',
-    'MouseState', 'Widget',
+    'MouseStateMixin', 'Widget',
     'GraphicalComponent', 'FlatComponent', 'LayeredComponent',
 
     'TimingComponent',

@@ -16,7 +16,7 @@
 #                                                                             #
 ###############################################################################
 
-from .widget import MouseState
+from .widget import MouseStateMixin
 from .component import FlatComponent
 
 
@@ -57,7 +57,7 @@ class DragWidget(FlatComponent):
                 self.y = min(max(y - ry, self.box.top), self.box.bottom - self.h)
 
 
-class SlideWidget(MouseState):
+class SlideWidget(MouseStateMixin):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.type = 'slide-widget'
@@ -77,7 +77,7 @@ class SlideWidget(MouseState):
 
     def on_mouse_motion(self, start, end, buttons, start_hovered, end_hovered):
         super().on_mouse_motion(start, end, buttons, start_hovered, end_hovered)
-        if self.mouse_state == MouseState.PRESS or self.mouse_state == MouseState.PULL:
+        if self.mouse_state == MouseStateMixin.PRESS or self.mouse_state == MouseStateMixin.PULL:
             x, y = end
             a1, a2 = self._axis_start
 

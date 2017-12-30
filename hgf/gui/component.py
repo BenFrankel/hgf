@@ -27,7 +27,7 @@ class GraphicalComponent(Rect, Component):
     def __init__(self,
                  x=0, y=0, w=0, h=0, z=0,
                  show=True, hover=True, solid=True, click=True,
-                 opacity=2, bgcolor=None,
+                 opacity=2, alpha=None, bgcolor=None, colorkey=None,
                  **kwargs):
         super().__init__(x=x, y=y, w=w, h=h, pause=False, **kwargs)
 
@@ -44,9 +44,19 @@ class GraphicalComponent(Rect, Component):
 
         # Rendering
         self._opacity = opacity
-        self._colorkey = (0, 0, 0) if self.is_opaque else (0, 0, 0, 0) if self.is_translucent else None
+        self.alpha = alpha
+        self._colorkey = colorkey
         self._bgcolor = bgcolor
         self._background = None
+
+        # Verify that colorkey is compatible with opacity
+        if colorkey is not None:
+            if self.is_opaque and len(colorkey) != 3:
+                raise ValueError('Colorkey of an opaque component must be a 3-tuple or None')
+            elif self.is_translucent and len(colorkey) != 4:
+                raise ValueError('Colorkey of a translucent component must be a 4-tuple or None')
+            elif self.is_transparent:
+                raise ValueError('Colorkey of a transparent component must be None')
 
         # Dirty state
         self._dirty_flag = True
@@ -93,6 +103,12 @@ class GraphicalComponent(Rect, Component):
             if not self.is_root:
                 self.parent._on_child_changed_z(self)
 
+    @double_buffer
+    class alpha:
+        def on_transition(self):
+            self._display.set_alpha(self.alpha)
+            self._set_dirty(True)
+
     @property
     def is_transparent(self):
         return self._opacity == 0
@@ -120,6 +136,15 @@ class GraphicalComponent(Rect, Component):
 
     @background.setter
     def background(self, other):
+        if self.is_transparent:
+            raise ValueError('Cannot set background for transparent component: {}'.format(self))
+        if self.is_opaque and (other.get_flags() & pygame.SRCALPHA or other.get_alpha() is not None):
+            raise ValueError('Cannot set translucent background for opaque component: {}'.format(self))
+        if other.get_colorkey() is not None and self._colorkey != other.get_colorkey():
+            if self._colorkey is None:
+                raise ValueError('Expected colorkey of None, got {}: {}'.format(other.get_colorkey(), self))
+            raise ValueError('Expected colorkey of None or {}, got {}: {}'
+                             .format(self._colorkey, other.get_colorkey(), self))
         if self._background is None or self._background.get_size() != other.get_size():
             self.size = other.get_size()
         self._background = other
@@ -263,22 +288,29 @@ class LayeredComponent(GraphicalComponent):
     @responsive(init=True, children_first=True)
     def refresh_layout(self): pass
 
+    # Necessary partial duplication of GraphicalComponent's background.setter
     @GraphicalComponent.background.setter
     def background(self, other):
         if self.is_transparent:
             raise ValueError('Cannot set background for transparent component: {}'.format(self))
         if self.is_opaque and (other.get_flags() & pygame.SRCALPHA or other.get_alpha() is not None):
             raise ValueError('Cannot set translucent background for opaque component: {}'.format(self))
-        if self._background.get_size() != other.get_size():
+        if other.get_colorkey() is not None and self._colorkey != other.get_colorkey():
+            if self._colorkey is None:
+                raise ValueError('Expected colorkey of None, got {}: {}'.format(other.get_colorkey(), self))
+            raise ValueError('Expected colorkey of None or {}, got {}: {}'
+                             .format(self._colorkey, other.get_colorkey(), self))
+        if self._background is None or self._background.get_size() != other.get_size():
             self.size = other.get_size()
-            if self.is_translucent:
-                self._display = pygame.Surface(other.get_size(), pygame.SRCALPHA)
-            elif self.is_opaque:
-                self._display = pygame.Surface(other.get_size())
+            if self.is_opaque:
+                self._display = pygame.Surface(self.size)
+            else:
+                self._display = pygame.Surface(self.size, pygame.SRCALPHA)
+        self._background = other
         if self._colorkey is not None:
             self._background.set_colorkey(self._colorkey)
             self._display.set_colorkey(self._colorkey)
-        self._background = other
+        self._display.set_alpha(self.alpha)
         self._set_dirty(True)
 
     @GraphicalComponent.colorkey.setter

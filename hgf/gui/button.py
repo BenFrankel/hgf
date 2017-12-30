@@ -16,12 +16,12 @@
 #                                                                             #
 ###############################################################################
 
-from .widget import MouseState
+from .widget import MouseStateMixin
 from .text import Text
 from .component import FlatComponent, LayeredComponent
 
 
-class Button(MouseState, FlatComponent):
+class Button(MouseStateMixin, FlatComponent):
     def __init__(self, message, **kwargs):
         super().__init__(opacity=1, **kwargs)
         self.type = 'button'
@@ -36,16 +36,17 @@ class Button(MouseState, FlatComponent):
     def refresh_background(self):
         super().refresh_background()
         self.background = self._bg_factory(self.size, self.mouse_state)
+        print(self.background.get_alpha(), self.is_translucent, self.background.get_at((0, 0)))
 
     def on_mouse_state_change(self, before, after):
         super().on_mouse_state_change(before, after)
-        if before == MouseState.PRESS and after == MouseState.HOVER:
+        if before == MouseStateMixin.PRESS and after == MouseStateMixin.HOVER:
             self.send_message(self.message)
 
 
-class LabeledButton(MouseState, LayeredComponent):
+class LabeledButton(MouseStateMixin, LayeredComponent):
     def __init__(self, label_text, message, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(opacity=1, **kwargs)
         self._label_text = label_text
         self.label = None
 
@@ -76,9 +77,9 @@ class LabeledButton(MouseState, LayeredComponent):
 
     def on_mouse_state_transition(self):
         super().on_mouse_state_transition()
-        if self.mouse_state == MouseState.PRESS:
+        if self.mouse_state == MouseStateMixin.PRESS:
             self.label.x -= 1
             self.label.y += 1
-        elif self.old_mouse_state == MouseState.PRESS:
+        elif self.old_mouse_state == MouseStateMixin.PRESS:
             self.label.x += 1
             self.label.y -= 1

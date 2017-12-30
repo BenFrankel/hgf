@@ -50,7 +50,7 @@ class double_buffer:
             getattr(instance, self._change_hook_name)(before, value)
 
         # Put transition hook at front of queue or remove it
-        queue = getattr(instance, _HookHandler._transition_hook_queue_name)
+        queue = getattr(instance, _DoubleBufferHandler._transition_hook_queue_name)
         try:
             queue.remove(self)
         except ValueError:
@@ -93,7 +93,7 @@ def responsive(init=False, priority=0, children_first=False):
     return responsive_factory
 
 
-class _HookHandler(type):
+class _DoubleBufferHandler(type):
     _initialized_flag_name = '__HookHandler_is_initialized'
     _transition_hook_queue_name = '__transition_hook_queue'
     _double_buffers_name = '__double_buffers'
@@ -106,15 +106,15 @@ class _HookHandler(type):
         new_responsive_attrs = tuple(responsive_attrs)
 
         for sprcls in bases[0]:
-            if isinstance(sprcls, _HookHandler):
-                double_buffers |= frozenset(getattr(sprcls, _HookHandler._double_buffers_name))
-                responsive_attrs |= frozenset(getattr(sprcls, _HookHandler._responsive_attrs_name))
+            if isinstance(sprcls, _DoubleBufferHandler):
+                double_buffers |= frozenset(getattr(sprcls, _DoubleBufferHandler._double_buffers_name))
+                responsive_attrs |= frozenset(getattr(sprcls, _DoubleBufferHandler._responsive_attrs_name))
 
         double_buffers = tuple(double_buffers)
         responsive_attrs = tuple(sorted(responsive_attrs, key=lambda a: a._priority))
 
-        setattr(cls, _HookHandler._double_buffers_name, double_buffers)
-        setattr(cls, _HookHandler._responsive_attrs_name, responsive_attrs)
+        setattr(cls, _DoubleBufferHandler._double_buffers_name, double_buffers)
+        setattr(cls, _DoubleBufferHandler._responsive_attrs_name, responsive_attrs)
 
         # Create appropriate class attributes
         for attr in new_double_buffers:
@@ -128,27 +128,27 @@ class _HookHandler(type):
             setattr(cls, attr._hook_name, attr._hook)
 
         # Don't double inject if _HookHandler already injected stuff into a superclass
-        if any(isinstance(sprcls, _HookHandler) for sprcls in bases[0]):
+        if any(isinstance(sprcls, _DoubleBufferHandler) for sprcls in bases[0]):
             super().__init__(name, bases, namespace)
             return
 
         # Create initialized flag
-        setattr(cls, _HookHandler._initialized_flag_name, False)
+        setattr(cls, _DoubleBufferHandler._initialized_flag_name, False)
 
         def call_transition_hooks(self):
-            if getattr(self, _HookHandler._initialized_flag_name):
-                for attr in getattr(self, _HookHandler._transition_hook_queue_name):
+            if getattr(self, _DoubleBufferHandler._initialized_flag_name):
+                for attr in getattr(self, _DoubleBufferHandler._transition_hook_queue_name):
                     getattr(self, attr._transition_hook_name)()
 
         def flip_transition_hooks(self):
-            setattr(self, _HookHandler._initialized_flag_name, True)
-            queue = getattr(self, _HookHandler._transition_hook_queue_name)
+            setattr(self, _DoubleBufferHandler._initialized_flag_name, True)
+            queue = getattr(self, _DoubleBufferHandler._transition_hook_queue_name)
             for attr in queue:
                 setattr(self, attr._prev_name, getattr(self, attr._curr_name))
             queue.clear()
 
         def refresh_responsive_attrs(self, children_first):
-            for attr in getattr(self, _HookHandler._responsive_attrs_name):
+            for attr in getattr(self, _DoubleBufferHandler._responsive_attrs_name):
                 if attr._children_first == children_first and getattr(self, attr._flag_name):
                     getattr(self, attr._hook_name)()
                     setattr(self, attr._flag_name, False)
@@ -178,7 +178,7 @@ class _HookHandler(type):
         # Modify __init__ to initialize hook queues
         old_init = cls.__init__
         def new_init(self, *args, **kwargs):
-            setattr(self, _HookHandler._transition_hook_queue_name, [])
+            setattr(self, _DoubleBufferHandler._transition_hook_queue_name, [])
             old_init(self, *args, **kwargs)
         cls.__init__ = new_init
 

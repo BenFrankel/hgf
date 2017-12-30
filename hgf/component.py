@@ -16,11 +16,11 @@
 #                                                                             #
 ###############################################################################
 
-from .double_buffer import _HookHandler,  responsive, double_buffer
+from .double_buffer import _DoubleBufferHandler,  responsive, double_buffer
 import logging
 
 
-class Component(metaclass=_HookHandler):
+class Component(metaclass=_DoubleBufferHandler):
     def __init__(self, *args,
                  frozen=False,
                  pause=False,
