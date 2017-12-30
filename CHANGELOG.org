@@ -35,12 +35,12 @@
 
 * Version 0.2.2
 
-** Bugs Fixed [2/4]
+** Bugs Fixed [4/4]
 
 - [X] Children of offset transparent components are rendered incorrectly (turns out other fix was insufficient)
 - [X] ~unregister~ fails and throws an error
-- [ ] Registering and unregistering doesn't trigger redraw
-- [ ] Unregistering doesn't remove from _graphical_children
+- [X] Registering and unregistering doesn't trigger redraw
+- [X] Unregistering doesn't remove from _graphical_children
 
 * Version 0.2.1
 

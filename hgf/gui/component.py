@@ -127,11 +127,6 @@ class GraphicalComponent(Rect, Component):
             self._background.set_colorkey(self._colorkey)
         self._set_dirty(True)
 
-    def on_disown(self):
-        if self.old_is_visible and self.old_w is not None:
-            self.parent._add_dirty_rect(Rect(self.old_x, self.old_y, self.old_w, self.old_h))
-        self._set_dirty(self.is_visible)
-
     def on_is_visible_transition(self):
         super().on_is_visible_transition()
         self._set_dirty(True)
@@ -236,11 +231,7 @@ class FlatComponent(GraphicalComponent):
 class LayeredComponent(GraphicalComponent):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-
-        # Rendering
         self._display = None
-
-        # Dirty rectangles state
         self._dirty_area = 0
         self._dirty_rects = []
 
@@ -304,6 +295,7 @@ class LayeredComponent(GraphicalComponent):
         super().register(*children)
         for child in children:
             if isinstance(child, GraphicalComponent):
+                child._set_dirty(True)
                 for i, other in enumerate(self._graphical_children):
                     if child.z > other.z:
                         self._graphical_children.insert(i, child)
@@ -315,15 +307,9 @@ class LayeredComponent(GraphicalComponent):
         super().unregister(*children)
         for child in children:
             if isinstance(child, GraphicalComponent):
-                try:
-                    self._graphical_children.remove(child)
-                except ValueError:
-                    pass
-
-    def on_disown(self):
-        super().on_disown()
-        for rect in self._dirty_rects:
-            self._clean_dirty_rects(rect)
+                if child.old_is_active and child.old_is_visible:
+                    self._add_dirty_rect(Rect(child.old_x, child.old_y, child.old_w, child.old_h))
+                self._graphical_children.remove(child)
 
     def _key_down(self, unicode, key, mod):
         super()._key_down(unicode, key, mod)
