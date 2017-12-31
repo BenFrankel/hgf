@@ -337,6 +337,8 @@ class LayeredComponent(GraphicalComponent):
                         break
                 else:
                     self._graphical_children.append(child)
+                self.refresh_proportions_flag = True
+                self.refresh_layout_flag = True
 
     def unregister(self, *children):
         super().unregister(*children)
@@ -345,6 +347,8 @@ class LayeredComponent(GraphicalComponent):
                 if child.old_is_active and child.old_is_visible:
                     self._add_dirty_rects(Rect(child.old_x, child.old_y, child.old_w, child.old_h))
                 self._graphical_children.remove(child)
+                self.refresh_proportions_flag = True
+                self.refresh_layout_flag = True
 
     def _key_down(self, unicode, key, mod):
         super()._key_down(unicode, key, mod)
