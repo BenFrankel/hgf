@@ -100,6 +100,7 @@ class GraphicalComponent(Rect, Component):
     @double_buffer
     class z:
         def on_transition(self):
+            self._set_dirty(True)
             if not self.is_root:
                 self.parent._on_child_changed_z(self)
 
@@ -319,9 +320,11 @@ class LayeredComponent(GraphicalComponent):
     def _on_child_changed_z(self, child):
         self._graphical_children.remove(child)
         for i, other in enumerate(self._graphical_children):
-            if other.z > child.z:
+            if child.z > other.z:
                 self._graphical_children.insert(i, child)
-        self._graphical_children.append(child)
+                break
+        else:
+            self._graphical_children.append(child)
 
     def register(self, *children):
         super().register(*children)
@@ -340,7 +343,7 @@ class LayeredComponent(GraphicalComponent):
         for child in children:
             if isinstance(child, GraphicalComponent):
                 if child.old_is_active and child.old_is_visible:
-                    self._add_dirty_rect(Rect(child.old_x, child.old_y, child.old_w, child.old_h))
+                    self._add_dirty_rects(Rect(child.old_x, child.old_y, child.old_w, child.old_h))
                 self._graphical_children.remove(child)
 
     def _key_down(self, unicode, key, mod):
@@ -379,42 +382,51 @@ class LayeredComponent(GraphicalComponent):
 
     def _set_dirty(self, other):
         super()._set_dirty(other)
-        if other and not self.is_root:
-            for rect in self._dirty_rects:
-                self._clean_dirty_rects(rect)
+        if other:
+            self._clean_dirty_rects(self._dirty_rects)
 
-    def _add_dirty_rect(self, rect):
-        if self._dirty_flag or rect in self._dirty_rects:
+    def _add_dirty_rects(self, *rects):
+        if self._dirty_flag:
             return
-        area = rect.area
+
+        area = sum(rect.area for rect in rects)
         if area + self._dirty_area > self.area:
             self._set_dirty(True)
-        else:
+            return
+
+        for rect in rects:
+            if rect in self._dirty_rects:
+                continue
             self._dirty_area += area
             self._dirty_rects.append(rect)
-            if not self.is_root:
-                self.parent._add_dirty_rect(Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h))
 
-    def _clean_dirty_rects(self, rect):
-        self._dirty_rects.remove(rect)
-        self._dirty_area -= rect.area
         if not self.is_root:
-            self.parent._clean_dirty_rects(Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h))
+            self.parent._add_dirty_rects(*[Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h) for rect in rects])
+
+    def _clean_dirty_rects(self, *rects):
+        for rect in rects:
+            self._dirty_rects.remove(rect)
+            self._dirty_area -= rect.area
+        if not self.is_root:
+            self.parent._clean_dirty_rects(*[Rect(self.x + rect.x, self.y + rect.y, rect.w, rect.h) for rect in rects])
 
     def _redraw_area(self, rect):
         pyrect = rect.as_pygame_rect()
         if self.is_translucent:
             self._display.fill(self.colorkey, pyrect)
         self._display.blit(self._background, rect.pos, pyrect)
+
         can_see = lambda child: child.is_active and child.is_visible
         children = [(c.pos, c) for c in self._graphical_children if can_see(c)]
         for pos, child in children:
             if child.is_transparent:
                 children.extend(((pos[0] + c.x, pos[1] + c.y), c) for c in child._graphical_children if can_see(c))
                 continue
+
             area = rect.intersect(Rect(*pos, child.w, child.h))
             if area is None or area.w <= 0 or area.h <= 0:
                 continue
+
             self._display.blit(child._display,
                                area.pos,
                                pygame.Rect(area.x - pos[0],
@@ -427,9 +439,9 @@ class LayeredComponent(GraphicalComponent):
         # Identify dirty rectangles
         if not self._dirty_flag:
             for child in self._graphical_children:
-                if (child.old_is_active and child.old_is_visible or child.is_active and child.is_visible) and child._dirty_flag:
+                if child._dirty_flag and (child.old_is_active and child.old_is_visible or child.is_active and child.is_visible):
                     for rect in child._transition_rects():
-                        self._add_dirty_rect(rect)
+                        self._add_dirty_rects(rect)
 
         # Redraw dirty rectangles
         if not self.is_transparent:
