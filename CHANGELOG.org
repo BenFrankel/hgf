@@ -23,9 +23,12 @@
 
 * Version 0.3.0 (In Progress)
 
-** Bugs Fixed [0/3]
+** Bugs Fixed [3/4]
 
 - [ ] TextField and TextEntryBox don't work
+- [X] ~_set_dirty~ sometimes fails when there are dirty rects
+- [X] Registering and unregistering doesn't trigger refresh of layout and proportions
+- [X] Resizing doesn't trigger refresh of background
 
 ** Restructuring [0/3]
 

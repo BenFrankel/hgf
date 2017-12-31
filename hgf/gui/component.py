@@ -313,9 +313,11 @@ class LayeredComponent(GraphicalComponent):
 
     def on_w_transition(self):
         self.refresh_proportions_flag = True
+        self.refresh_background_flag = True
 
     def on_h_transition(self):
         self.refresh_proportions_flag = True
+        self.refresh_background_flag = True
 
     def _on_child_changed_z(self, child):
         self._graphical_children.remove(child)
