@@ -59,7 +59,7 @@ class GraphicalComponent(Rect, Component):
                 raise ValueError('Colorkey of a transparent component must be None')
 
         # Dirty state
-        self._dirty_flag = True
+        self._is_dirty = True
 
         self._graphical_children = []
         self.z = z
@@ -214,7 +214,7 @@ class GraphicalComponent(Rect, Component):
         return []
 
     def _set_dirty(self, other):
-        self._dirty_flag = other
+        self._is_dirty = other
 
     def _step_reset(self):
         self._dirty_rects = []
@@ -263,19 +263,10 @@ class LayeredComponent(GraphicalComponent):
 
     @responsive(init=True, priority=-1)
     def refresh_proportions(self):
-        if self.is_translucent:
-            self._background = pygame.Surface(self.size, pygame.SRCALPHA)
-            self._display = pygame.Surface(self.size, pygame.SRCALPHA)
-        elif self.is_opaque:
-            self._background = pygame.Surface(self.size)
-            self._display = pygame.Surface(self.size)
-        if self._colorkey is not None:
-            self._background.set_colorkey(self._colorkey)
-            self._display.set_colorkey(self._colorkey)
-            if self.is_opaque and self._bgcolor is None:
-                self._bgcolor = (255, 255, 255)
-        if not self.is_transparent and self._bgcolor is not None:
-            self._background.fill(self._bgcolor)
+        if not self.is_transparent:
+            self.background = pygame.Surface(self.size)
+            if self._bgcolor is not None:
+                self._background.fill(self._bgcolor)
 
     @responsive(init=True, children_first=True)
     def refresh_layout(self): pass
@@ -287,22 +278,19 @@ class LayeredComponent(GraphicalComponent):
             raise ValueError('Cannot set background for transparent component: {}'.format(self))
         if self.is_opaque and (other.get_flags() & pygame.SRCALPHA or other.get_alpha() is not None):
             raise ValueError('Cannot set translucent background for opaque component: {}'.format(self))
-        if other.get_colorkey() is not None and self._colorkey != other.get_colorkey():
-            if self._colorkey is None:
-                raise ValueError('Expected colorkey of None, got {}: {}'.format(other.get_colorkey(), self))
-            raise ValueError('Expected colorkey of None or {}, got {}: {}'
-                             .format(self._colorkey, other.get_colorkey(), self))
         if self._background is None or self._background.get_size() != other.get_size():
             self.size = other.get_size()
-            if self.is_opaque:
-                self._display = pygame.Surface(self.size)
-            else:
-                self._display = pygame.Surface(self.size, pygame.SRCALPHA)
+            if self.is_translucent:
+                self._display = pygame.Surface(other.get_size(), pygame.SRCALPHA)
+                if self._colorkey is not None:
+                    self._display.set_colorkey(self._colorkey)
+            elif self.is_opaque:
+                self._display = pygame.Surface(other.get_size())
+                if self._colorkey is not None:
+                    self._display.set_colorkey(self._colorkey)
         self._background = other
         if self._colorkey is not None:
             self._background.set_colorkey(self._colorkey)
-            self._display.set_colorkey(self._colorkey)
-        self._display.set_alpha(self.alpha)
         self._set_dirty(True)
 
     @GraphicalComponent.colorkey.setter
@@ -392,7 +380,7 @@ class LayeredComponent(GraphicalComponent):
             self._clean_dirty_rects(self._dirty_rects)
 
     def _add_dirty_rects(self, *rects):
-        if self._dirty_flag:
+        if self._is_dirty:
             return
 
         area = sum(rect.area for rect in rects)
@@ -443,7 +431,7 @@ class LayeredComponent(GraphicalComponent):
     def _step_output(self):
         super()._step_output()
         # Identify dirty rectangles
-        if not self._dirty_flag:
+        if not self._is_dirty:
             for child in self._graphical_children:
                 if child._dirty_flag and (child.old_is_active and child.old_is_visible or child.is_active and child.is_visible):
                     for rect in child._transition_rects():
@@ -451,10 +439,10 @@ class LayeredComponent(GraphicalComponent):
 
         # Redraw dirty rectangles
         if not self.is_transparent:
-            if self._dirty_flag:
+            if self._is_dirty:
                 self._redraw_area(self.rel_rect())
             else:
                 for rect in self._dirty_rects:
                     self._redraw_area(rect)
 
-        return self._dirty_flag or self._dirty_rects
+        return self._is_dirty or self._dirty_rects

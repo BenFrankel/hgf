@@ -33,11 +33,10 @@ class Window(LayeredComponent):
         self.args = args
         self._display = None
 
-        self.bg_color = None
         self.title = 'hgf Window'
 
     def load_style(self):
-        self.bg_color = self.style_get('bg-color')
+        self._bgcolor = self.style_get('bg-color')
 
     def load_options(self):
         self.title = self.options_get('title')
@@ -49,7 +48,6 @@ class Window(LayeredComponent):
     def refresh_background(self):
         super().refresh_background()
         pygame.display.set_caption(self.title)
-        self._background.fill(self.bg_color)
 
     def launch(self, fps=None, debug=False):
         if debug:
